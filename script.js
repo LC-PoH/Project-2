@@ -171,15 +171,15 @@ function fillCred(username, password, role) {
 function logout() {
   if (confirm('Are you sure you want to logout?')) {
     HMS.clearSession();
-    window.location.href = 'index.html';
+    window.location.href = 'login.html';
   }
 }
 
 function requireAuth(requiredRole) {
   HMS.init();
   const session = HMS.getSession();
-  if (!session) { window.location.href = 'index.html'; return null; }
-  if (requiredRole && session.role !== requiredRole) { window.location.href = 'index.html'; return null; }
+  if (!session) { window.location.href = 'login.html'; return null; }
+  if (requiredRole && session.role !== requiredRole) { window.location.href = 'login.html'; return null; }
   return session;
 }
 
