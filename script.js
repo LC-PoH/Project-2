@@ -867,8 +867,21 @@ function populateRoomDropdown(sel, rooms) {
 }
 
 // ===== CHARTS =====
+const chartInstances = { revenue: null, occupancy: null, payStatus: null };
+
+function destroyCharts() {
+  Object.keys(chartInstances).forEach(key => {
+    if (chartInstances[key]) {
+      chartInstances[key].destroy();
+      chartInstances[key] = null;
+    }
+  });
+}
+
 function initCharts() {
   if (typeof Chart === 'undefined') return;
+  destroyCharts();
+  
   const payments = HMS.get('payments').filter(p => p.status === 'paid');
   const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   const revData = months.map((_, i) => {
@@ -878,7 +891,7 @@ function initCharts() {
 
   const revenueCtx = document.getElementById('revenueChart');
   if (revenueCtx) {
-    new Chart(revenueCtx, {
+    chartInstances.revenue = new Chart(revenueCtx, {
       type:'line',
       data:{ labels:months, datasets:[{ label:'Revenue (₹)', data:revData, borderColor:'#2563eb', backgroundColor:'rgba(37,99,235,0.08)', tension:0.4, fill:true, pointBackgroundColor:'#2563eb', pointRadius:4 }] },
       options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false} }, scales:{ y:{ beginAtZero:true, grid:{color:'#f1f5f9'}, ticks:{callback:v=>'₹'+Number(v).toLocaleString('en-IN')} }, x:{ grid:{display:false} } } }
@@ -891,7 +904,7 @@ function initCharts() {
     const occ = rooms.filter(r=>r.status==='occupied').length;
     const part = rooms.filter(r=>r.status==='partial').length;
     const avail = rooms.filter(r=>r.status==='available').length;
-    new Chart(occCtx, {
+    chartInstances.occupancy = new Chart(occCtx, {
       type:'doughnut',
       data:{ labels:['Occupied','Partial','Available'], datasets:[{ data:[occ,part,avail], backgroundColor:['#ef4444','#f59e0b','#10b981'], borderWidth:0, hoverOffset:4 }] },
       options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{position:'bottom'} }, cutout:'65%' }
@@ -903,7 +916,7 @@ function initCharts() {
     const allPay = HMS.get('payments');
     const paid = allPay.filter(p=>p.status==='paid').length;
     const pend = allPay.filter(p=>p.status==='pending').length;
-    new Chart(payStatusCtx, {
+    chartInstances.payStatus = new Chart(payStatusCtx, {
       type:'bar',
       data:{ labels:['Paid','Pending'], datasets:[{ data:[paid,pend], backgroundColor:['#10b981','#f59e0b'], borderRadius:6, borderWidth:0 }] },
       options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false} }, scales:{ y:{beginAtZero:true,grid:{color:'#f1f5f9'}}, x:{grid:{display:false}} } }
