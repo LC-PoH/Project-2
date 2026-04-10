@@ -2,39 +2,87 @@
 // HOSTEL MANAGEMENT SYSTEM - CORE SCRIPT
 // ==========================================
 
+const DATA_VERSION = 'v2.0';
+
 // ===== DATA STORE =====
 const HMS = {
   KEYS: { users:'hms_users', rooms:'hms_rooms', bookings:'hms_bookings', payments:'hms_payments', requests:'hms_requests', visitors:'hms_visitors', attendance:'hms_attendance', notices:'hms_notices' },
 
   defaults: {
     users: [
+      // Staff
       { id:'u1', username:'admin', password:'admin123', role:'admin', name:'Rajesh Kumar', email:'admin@hostelpro.com', phone:'9876543210' },
-      { id:'u2', username:'student123', password:'pass123', role:'student', name:'Arjun Sharma', email:'arjun@student.com', phone:'9876543211', studentId:'STU001', roomId:'r1', bloodGroup:'O+', emergencyContact:'9876543212', course:'B.Tech CSE', year:'2nd Year', fatherName:'Ramesh Sharma', address:'123 Main St, Delhi' },
       { id:'u3', username:'reception', password:'rec123', role:'receptionist', name:'Priya Patel', email:'priya@hostelpro.com', phone:'9876543213' },
-      { id:'u4', username:'student456', password:'pass456', role:'student', name:'Rahul Verma', email:'rahul@student.com', phone:'9876543214', studentId:'STU002', roomId:'r2', bloodGroup:'A+', emergencyContact:'9876543215', course:'B.Tech ECE', year:'3rd Year', fatherName:'Suresh Verma', address:'456 Park Ave, Mumbai' },
-      { id:'u5', username:'student789', password:'pass789', role:'student', name:'Sneha Singh', email:'sneha@student.com', phone:'9876543216', studentId:'STU003', roomId:'r3', bloodGroup:'B+', emergencyContact:'9876543217', course:'MCA', year:'1st Year', fatherName:'Deepak Singh', address:'789 Lake Rd, Bangalore' },
+      // Students
+      { id:'u2',  username:'student123', password:'pass123',  role:'student', name:'Arjun Sharma',   email:'arjun@student.com',   phone:'9811001001', studentId:'STU001', roomId:'r1', bloodGroup:'O+',  emergencyContact:'9811001002', course:'B.Tech CSE',  year:'2nd Year', fatherName:'Ramesh Sharma',  address:'12 Rajouri Garden, Delhi' },
+      { id:'u4',  username:'rahul456',   password:'rahul123',  role:'student', name:'Rahul Verma',    email:'rahul@student.com',   phone:'9811002001', studentId:'STU002', roomId:'r2', bloodGroup:'A+',  emergencyContact:'9811002002', course:'B.Tech ECE',  year:'3rd Year', fatherName:'Suresh Verma',   address:'45 Andheri West, Mumbai' },
+      { id:'u5',  username:'sneha789',   password:'sneha123',  role:'student', name:'Sneha Singh',    email:'sneha@student.com',   phone:'9811003001', studentId:'STU003', roomId:'r3', bloodGroup:'B+',  emergencyContact:'9811003002', course:'MCA',         year:'1st Year', fatherName:'Deepak Singh',   address:'78 Whitefield, Bangalore' },
+      { id:'u6',  username:'priya.k',    password:'priya123',  role:'student', name:'Priya Kapoor',   email:'priya.k@student.com', phone:'9811004001', studentId:'STU004', roomId:'r2', bloodGroup:'AB+', emergencyContact:'9811004002', course:'B.Sc IT',     year:'2nd Year', fatherName:'Rakesh Kapoor',  address:'22 Salt Lake, Kolkata' },
+      { id:'u7',  username:'ankit.y',    password:'ankit123',  role:'student', name:'Ankit Yadav',    email:'ankit.y@student.com', phone:'9811005001', studentId:'STU005', roomId:'r3', bloodGroup:'O-',  emergencyContact:'9811005002', course:'B.Tech ME',   year:'4th Year', fatherName:'Ramkesh Yadav',  address:'33 Civil Lines, Allahabad' },
+      { id:'u8',  username:'kavya.r',    password:'kavya123',  role:'student', name:'Kavya Reddy',    email:'kavya.r@student.com', phone:'9811006001', studentId:'STU006', roomId:'r3', bloodGroup:'B-',  emergencyContact:'9811006002', course:'MBA',         year:'1st Year', fatherName:'Venkat Reddy',   address:'56 Banjara Hills, Hyderabad' },
+      { id:'u9',  username:'rohit.m',    password:'rohit123',  role:'student', name:'Rohit Mehta',    email:'rohit.m@student.com', phone:'9811007001', studentId:'STU007', roomId:'r4', bloodGroup:'A-',  emergencyContact:'9811007002', course:'B.Tech Civil',year:'3rd Year', fatherName:'Anil Mehta',     address:'67 Navrangpura, Ahmedabad' },
+      { id:'u10', username:'pooja.g',    password:'pooja123',  role:'student', name:'Pooja Gupta',    email:'pooja.g@student.com', phone:'9811008001', studentId:'STU008', roomId:'r4', bloodGroup:'AB-', emergencyContact:'9811008002', course:'BCA',         year:'2nd Year', fatherName:'Sanjay Gupta',   address:'89 Hazratganj, Lucknow' },
+      { id:'u11', username:'sanjay.j',   password:'sanjay123', role:'student', name:'Sanjay Joshi',   email:'sanjay.j@student.com',phone:'9811009001', studentId:'STU009', roomId:'r5', bloodGroup:'O+',  emergencyContact:'9811009002', course:'M.Tech CSE',  year:'1st Year', fatherName:'Mohan Joshi',    address:'101 Koregaon Park, Pune' },
+      { id:'u12', username:'meera.k',    password:'meera123',  role:'student', name:'Meera Krishnan', email:'meera.k@student.com', phone:'9811010001', studentId:'STU010', roomId:'r6', bloodGroup:'B+',  emergencyContact:'9811010002', course:'BBA',         year:'3rd Year', fatherName:'Krishnan Pillai',address:'14 T Nagar, Chennai' },
+      { id:'u13', username:'aditya.p',   password:'aditya123', role:'student', name:'Aditya Patil',   email:'aditya.p@student.com',phone:'9811011001', studentId:'STU011', roomId:'r6', bloodGroup:'A+',  emergencyContact:'9811011002', course:'B.Tech CSE',  year:'2nd Year', fatherName:'Ramesh Patil',   address:'55 FC Road, Pune' },
     ],
     rooms: [
-      { id:'r1', number:'A-101', floor:'Ground Floor', type:'Single', beds:1, occupied:1, bathrooms:'Shared', rent:5000, status:'occupied', amenities:['AC','WiFi','Study Table','Wardrobe'] },
-      { id:'r2', number:'A-102', floor:'Ground Floor', type:'Double', beds:2, occupied:2, bathrooms:'Shared', rent:4000, status:'occupied', amenities:['Fan','WiFi','Study Table'] },
-      { id:'r3', number:'B-201', floor:'2nd Floor', type:'Triple', beds:3, occupied:1, bathrooms:'Attached', rent:3500, status:'partial', amenities:['AC','WiFi','Attached Bath','Balcony'] },
-      { id:'r4', number:'B-202', floor:'2nd Floor', type:'Double', beds:2, occupied:0, bathrooms:'Shared', rent:4000, status:'available', amenities:['Fan','WiFi'] },
-      { id:'r5', number:'C-301', floor:'3rd Floor', type:'Single', beds:1, occupied:0, bathrooms:'Attached', rent:6000, status:'available', amenities:['AC','WiFi','Attached Bath','TV'] },
-      { id:'r6', number:'C-302', floor:'3rd Floor', type:'Triple', beds:3, occupied:3, bathrooms:'Attached', rent:3500, status:'occupied', amenities:['Fan','WiFi','Attached Bath'] },
+      { id:'r1', number:'A-101', floor:'Ground Floor', type:'Single', beds:1, occupied:1, bathrooms:'Shared',   rent:5000, status:'occupied',  amenities:['AC','WiFi','Study Table','Wardrobe'] },
+      { id:'r2', number:'A-102', floor:'Ground Floor', type:'Double', beds:2, occupied:2, bathrooms:'Shared',   rent:4000, status:'occupied',  amenities:['Fan','WiFi','Study Table'] },
+      { id:'r3', number:'B-201', floor:'2nd Floor',   type:'Triple', beds:3, occupied:3, bathrooms:'Attached',  rent:3500, status:'occupied',  amenities:['AC','WiFi','Attached Bath','Balcony'] },
+      { id:'r4', number:'B-202', floor:'2nd Floor',   type:'Double', beds:2, occupied:2, bathrooms:'Shared',   rent:4000, status:'occupied',  amenities:['Fan','WiFi'] },
+      { id:'r5', number:'C-301', floor:'3rd Floor',   type:'Single', beds:1, occupied:1, bathrooms:'Attached',  rent:6000, status:'occupied',  amenities:['AC','WiFi','Attached Bath','TV'] },
+      { id:'r6', number:'C-302', floor:'3rd Floor',   type:'Triple', beds:3, occupied:2, bathrooms:'Attached',  rent:3500, status:'partial',   amenities:['Fan','WiFi','Attached Bath'] },
+      { id:'r7', number:'D-401', floor:'4th Floor',   type:'Double', beds:2, occupied:0, bathrooms:'Attached',  rent:4500, status:'available', amenities:['AC','WiFi','Attached Bath','Study Table'] },
+      { id:'r8', number:'D-402', floor:'4th Floor',   type:'Single', beds:1, occupied:0, bathrooms:'Attached',  rent:6500, status:'available', amenities:['AC','WiFi','Attached Bath','TV','Mini Fridge'] },
     ],
     bookings: [
-      { id:'b1', studentId:'u2', roomId:'r1', checkIn:'2024-07-01', checkOut:'2025-06-30', amount:5000, status:'active' },
-      { id:'b2', studentId:'u4', roomId:'r2', checkIn:'2024-08-01', checkOut:'2025-05-31', amount:4000, status:'active' },
-      { id:'b3', studentId:'u5', roomId:'r3', checkIn:'2024-09-01', checkOut:'2025-08-31', amount:3500, status:'active' },
-      { id:'b4', studentId:'u2', roomId:'r1', checkIn:'2023-07-01', checkOut:'2024-06-30', amount:4500, status:'completed' },
+      { id:'b1',  studentId:'u2',  roomId:'r1', checkIn:'2024-07-01', checkOut:'2025-06-30', amount:5000, status:'active' },
+      { id:'b2',  studentId:'u4',  roomId:'r2', checkIn:'2024-08-01', checkOut:'2025-05-31', amount:4000, status:'active' },
+      { id:'b3',  studentId:'u5',  roomId:'r3', checkIn:'2024-09-01', checkOut:'2025-08-31', amount:3500, status:'active' },
+      { id:'b5',  studentId:'u6',  roomId:'r2', checkIn:'2024-08-01', checkOut:'2025-07-31', amount:4000, status:'active' },
+      { id:'b6',  studentId:'u7',  roomId:'r3', checkIn:'2024-07-15', checkOut:'2025-07-14', amount:3500, status:'active' },
+      { id:'b7',  studentId:'u8',  roomId:'r3', checkIn:'2024-10-01', checkOut:'2025-09-30', amount:3500, status:'active' },
+      { id:'b8',  studentId:'u9',  roomId:'r4', checkIn:'2024-09-01', checkOut:'2025-08-31', amount:4000, status:'active' },
+      { id:'b9',  studentId:'u10', roomId:'r4', checkIn:'2024-11-01', checkOut:'2025-10-31', amount:4000, status:'active' },
+      { id:'b10', studentId:'u11', roomId:'r5', checkIn:'2025-01-01', checkOut:'2025-12-31', amount:6000, status:'active' },
+      { id:'b11', studentId:'u12', roomId:'r6', checkIn:'2024-08-01', checkOut:'2025-07-31', amount:3500, status:'active' },
+      { id:'b12', studentId:'u13', roomId:'r6', checkIn:'2024-09-01', checkOut:'2025-08-31', amount:3500, status:'active' },
+      { id:'b4',  studentId:'u2',  roomId:'r1', checkIn:'2023-07-01', checkOut:'2024-06-30', amount:4500, status:'completed' },
     ],
     payments: [
-      { id:'p1', bookingId:'b1', studentId:'u2', amount:5000, method:'UPI', date:'2025-04-01', status:'paid', type:'Monthly Rent', txnId:'TXN2504010001' },
-      { id:'p2', bookingId:'b1', studentId:'u2', amount:5000, method:'Net Banking', date:'2025-03-01', status:'paid', type:'Monthly Rent', txnId:'TXN2503010002' },
-      { id:'p3', bookingId:'b1', studentId:'u2', amount:5000, method:'UPI', date:'2025-02-01', status:'paid', type:'Monthly Rent', txnId:'TXN2502010003' },
-      { id:'p4', bookingId:'b2', studentId:'u4', amount:4000, method:'Debit Card', date:'2025-04-01', status:'paid', type:'Monthly Rent', txnId:'TXN2504010004' },
-      { id:'p5', bookingId:'b3', studentId:'u5', amount:3500, method:'UPI', date:'2025-04-01', status:'paid', type:'Monthly Rent', txnId:'TXN2504010005' },
-      { id:'p6', bookingId:'b1', studentId:'u2', amount:5000, method:'', date:'2025-05-01', status:'pending', type:'Monthly Rent', txnId:'' },
+      // Arjun Sharma (STU001)
+      { id:'p1',  bookingId:'b1',  studentId:'u2',  amount:5000, method:'UPI',         date:'2025-04-01', status:'paid',    type:'Monthly Rent', txnId:'TXN2504010001' },
+      { id:'p2',  bookingId:'b1',  studentId:'u2',  amount:5000, method:'Net Banking', date:'2025-03-01', status:'paid',    type:'Monthly Rent', txnId:'TXN2503010002' },
+      { id:'p3',  bookingId:'b1',  studentId:'u2',  amount:5000, method:'UPI',         date:'2025-02-01', status:'paid',    type:'Monthly Rent', txnId:'TXN2502010003' },
+      { id:'p6',  bookingId:'b1',  studentId:'u2',  amount:5000, method:'',            date:'2025-05-01', status:'pending', type:'Monthly Rent', txnId:'' },
+      // Rahul Verma (STU002)
+      { id:'p4',  bookingId:'b2',  studentId:'u4',  amount:4000, method:'Debit Card',  date:'2025-04-01', status:'paid',    type:'Monthly Rent', txnId:'TXN2504010004' },
+      { id:'p7',  bookingId:'b2',  studentId:'u4',  amount:4000, method:'UPI',         date:'2025-03-01', status:'paid',    type:'Monthly Rent', txnId:'TXN2503010007' },
+      { id:'p17', bookingId:'b2',  studentId:'u4',  amount:4000, method:'',            date:'2025-05-01', status:'pending', type:'Monthly Rent', txnId:'' },
+      // Sneha Singh (STU003)
+      { id:'p5',  bookingId:'b3',  studentId:'u5',  amount:3500, method:'UPI',         date:'2025-04-01', status:'paid',    type:'Monthly Rent', txnId:'TXN2504010005' },
+      { id:'p8',  bookingId:'b3',  studentId:'u5',  amount:3500, method:'Net Banking', date:'2025-03-01', status:'paid',    type:'Monthly Rent', txnId:'TXN2503010008' },
+      // Priya Kapoor (STU004)
+      { id:'p9',  bookingId:'b5',  studentId:'u6',  amount:4000, method:'UPI',         date:'2025-04-01', status:'paid',    type:'Monthly Rent', txnId:'TXN2504010009' },
+      { id:'p18', bookingId:'b5',  studentId:'u6',  amount:4000, method:'',            date:'2025-05-01', status:'pending', type:'Monthly Rent', txnId:'' },
+      // Ankit Yadav (STU005)
+      { id:'p10', bookingId:'b6',  studentId:'u7',  amount:3500, method:'Credit Card', date:'2025-04-01', status:'paid',    type:'Monthly Rent', txnId:'TXN2504010010' },
+      // Kavya Reddy (STU006)
+      { id:'p11', bookingId:'b7',  studentId:'u8',  amount:3500, method:'UPI',         date:'2025-04-01', status:'paid',    type:'Monthly Rent', txnId:'TXN2504010011' },
+      { id:'p19', bookingId:'b7',  studentId:'u8',  amount:3500, method:'',            date:'2025-05-01', status:'pending', type:'Monthly Rent', txnId:'' },
+      // Rohit Mehta (STU007)
+      { id:'p12', bookingId:'b8',  studentId:'u9',  amount:4000, method:'Net Banking', date:'2025-04-01', status:'paid',    type:'Monthly Rent', txnId:'TXN2504010012' },
+      // Pooja Gupta (STU008)
+      { id:'p13', bookingId:'b9',  studentId:'u10', amount:4000, method:'UPI',         date:'2025-04-01', status:'paid',    type:'Monthly Rent', txnId:'TXN2504010013' },
+      { id:'p20', bookingId:'b9',  studentId:'u10', amount:4000, method:'',            date:'2025-05-01', status:'pending', type:'Monthly Rent', txnId:'' },
+      // Sanjay Joshi (STU009)
+      { id:'p14', bookingId:'b10', studentId:'u11', amount:6000, method:'Debit Card',  date:'2025-04-01', status:'paid',    type:'Monthly Rent', txnId:'TXN2504010014' },
+      // Meera Krishnan (STU010)
+      { id:'p15', bookingId:'b11', studentId:'u12', amount:3500, method:'UPI',         date:'2025-04-01', status:'paid',    type:'Monthly Rent', txnId:'TXN2504010015' },
+      // Aditya Patil (STU011)
+      { id:'p16', bookingId:'b12', studentId:'u13', amount:3500, method:'UPI',         date:'2025-04-01', status:'paid',    type:'Monthly Rent', txnId:'TXN2504010016' },
+      { id:'p21', bookingId:'b12', studentId:'u13', amount:3500, method:'',            date:'2025-05-01', status:'pending', type:'Monthly Rent', txnId:'' },
     ],
     requests: [
       { id:'req1', studentId:'u2', type:'Maintenance', description:'Light bulb not working in room', date:'2025-04-08', status:'pending', response:'' },
