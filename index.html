@@ -64,7 +64,7 @@
       <div class="login-card-title">Welcome back</div>
       <div class="login-card-subtitle">Sign in to your account to continue</div>
 
-      <form id="loginForm">
+      <form id="loginForm" onsubmit="handleLogin(event)">
         <div class="form-group">
           <label class="form-label" for="role">Login As</label>
           <select class="form-control" id="role" required>
