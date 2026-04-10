@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Hostel Pro – Receptionist Dashboard</title>
+  <title>Aastha Vidhya Mandir – Receptionist Dashboard</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -17,7 +17,7 @@
       <div class="sidebar-logo">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
       </div>
-      <div><div class="sidebar-brand">Hostel Pro</div><div class="sidebar-brand-sub">Reception Desk</div></div>
+      <div><div class="sidebar-brand">AVM</div><div class="sidebar-brand-sub">Reception Desk</div></div>
     </div>
     <nav class="sidebar-nav">
       <div class="sidebar-section-label">Main</div>
@@ -73,6 +73,9 @@
         <input type="text" placeholder="Search students…" oninput="recSearch(this.value)">
       </div>
       <div class="topbar-actions">
+        <button class="topbar-btn" id="themeToggleBtn" onclick="toggleTheme()" title="Toggle dark/light mode">
+          <svg fill="currentColor" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
         <button class="topbar-btn" onclick="openModal('visitorModal')" title="Register visitor">
           <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
         </button>
@@ -417,6 +420,21 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="logoutConfirmModal">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <div class="modal-title">Confirm Logout</div>
+      <button class="modal-close" onclick="closeModal('logoutConfirmModal')"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <p>Are you sure you want to logout?</p>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" onclick="closeModal('logoutConfirmModal')">Cancel</button>
+      <button type="button" class="btn btn-danger" onclick="confirmLogout()">Logout</button>
+    </div>
+  </div>
+</div>
 <div class="notifications-container"></div>
 <script src="script.js"></script>
 <script>
