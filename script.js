@@ -511,7 +511,7 @@ function printReceipt(paymentId) {
   if (!p) return;
   const student = HMS.findById('users', p.studentId);
   const w = window.open('', '_blank');
-  w.document.head.innerHTML = `<title>Receipt</title><style>body{font-family:Arial;padding:40px;max-width:500px;margin:0 auto}h2{color:#2563eb}.amount{font-size:24px;font-weight:700;color:#10b981}p{margin:8px 0}hr{border:none;border-top:1px solid #eee;margin:16px 0}</style>`;
+  w.document.head.innerHTML = `<title>Receipt</title><style>body{font-family:Arial;padding:40px;max-width:500px;margin:0 auto}h2{color:#4338ca}.amount{font-size:24px;font-weight:700;color:#10b981}p{margin:8px 0}hr{border:none;border-top:1px solid #eee;margin:16px 0}</style>`;
   w.document.body.innerHTML = `<h2>Hostel Pro - Payment Receipt</h2><hr>
     <p><strong>Transaction ID:</strong> ${p.txnId}</p>
     <p><strong>Date:</strong> ${fmtDate(p.date)}</p>
@@ -927,7 +927,7 @@ function initCharts() {
   if (revenueCtx) {
     chartInstances.revenue = new Chart(revenueCtx, {
       type:'line',
-      data:{ labels:months, datasets:[{ label:'Revenue (₹)', data:revData, borderColor:'#2563eb', backgroundColor:'rgba(37,99,235,0.08)', tension:0.4, fill:true, pointBackgroundColor:'#2563eb', pointRadius:4 }] },
+      data:{ labels:months, datasets:[{ label:'Revenue (₹)', data:revData, borderColor:'#4338ca', backgroundColor:'rgba(67,56,202,0.08)', tension:0.4, fill:true, pointBackgroundColor:'#4338ca', pointRadius:4 }] },
       options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false} }, scales:{ y:{ beginAtZero:true, grid:{color:'#f1f5f9'}, ticks:{callback:v=>'₹'+Number(v).toLocaleString('en-IN')} }, x:{ grid:{display:false} } } }
     });
   }
