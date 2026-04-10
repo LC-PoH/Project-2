@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hostel Management System - Login</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-image">
+            <img src="https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=800" alt="Hostel">
+            <div class="image-overlay">
+                <div class="brand">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                        <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+                    </svg>
+                    <h2>Hostel Pro</h2>
+                </div>
+                <p>Streamline Your Hostel Operations with Our Comprehensive Management Solution</p>
+                <div style="margin-top: 2rem; display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; opacity: 0.95;">
+                    <div>
+                        <div style="font-size: 1.5rem; font-weight: 700; margin-bottom: 0.25rem;">500+</div>
+                        <div style="font-size: 0.85rem; color: rgba(255,255,255,0.9);">Active Hostels</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 1.5rem; font-weight: 700; margin-bottom: 0.25rem;">50K+</div>
+                        <div style="font-size: 0.85rem; color: rgba(255,255,255,0.9);">Students Managed</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="login-form-container">
+            <div class="login-card">
+                <div class="card-header">
+                    <svg class="icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                        <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+                    </svg>
+                    <h1>Welcome Back</h1>
+                    <p>Sign in to your hostel management account</p>
+                </div>
+                
+                <form id="loginForm" onsubmit="handleLogin(event)">
+                    <div class="form-group">
+                        <label for="role">Login As</label>
+                        <select id="role" required>
+                            <option value="student">👨‍🎓 Student</option>
+                            <option value="owner">👔 Admin/Owner</option>
+                            <option value="receptionist">👨‍💼 Receptionist</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="username">Username or Email</label>
+                        <input type="text" id="username" placeholder="Enter your username or email" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <div class="password-input">
+                            <input type="password" id="password" placeholder="Enter your password" required>
+                            <button type="button" class="toggle-password" onclick="togglePassword()">
+                                <svg id="eyeIcon" class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary btn-block btn-lg" style="margin-top: 0.5rem;">
+                        Sign In
+                        <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M15 3h4a2 2 0 0  1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+                            <polyline points="10 17 15 12 10 7"></polyline>
+                        </svg>
+                    </button>
+                    
+                    <div class="form-footer">
+                        <a href="#" class="link">Forgot Password?</a>
+                        <span style="color: var(--gray); margin: 0 0.5rem;">•</span>
+                        <a href="#" class="link">Need Help?</a>
+                    </div>
+                </form>
+
+                <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--gray-light);">
+                    <p style="color: var(--gray); font-size: 0.85rem; text-align: center; margin-bottom: 1rem;">Demo Credentials</p>
+                    <div style="background: var(--light); padding: 1rem; border-radius: var(--border-radius); font-size: 0.85rem;">
+                        <p style="margin-bottom: 0.5rem;"><strong>Student:</strong> student123 / pass123</p>
+                        <p style="margin-bottom: 0.5rem;"><strong>Admin:</strong> admin / admin123</p>
+                        <p><strong>Receptionist:</strong> reception / rec123</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html>
