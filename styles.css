@@ -469,7 +469,6 @@ thead th{background:var(--bg);color:var(--text-2);font-weight:600;font-size:11px
 .sortable-th.sort-active .sort-icon{opacity:1}
 /* FIX: Removed unreliable height:60px on tbody tr — CSS height is ignored when cell content is taller.
    Rows are now uniform because every td-sub div always renders (never conditional). */
-tbody tr{}
 tbody td{padding:8px 16px;border-bottom:1px solid var(--border);color:var(--text);vertical-align:middle}
 tbody tr:last-child td{border-bottom:none}
 tbody tr:hover{background:var(--surface-2)}
