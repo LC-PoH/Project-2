@@ -4,6 +4,8 @@ require_once __DIR__ . '/db.php';
 
 require_method('GET');
 $session = require_auth(['student', 'receptionist', 'admin']);
+// Release the PHP session file lock before running DB queries.
+session_write_close();
 
 try {
     $pdo = getDB();
