@@ -523,6 +523,7 @@ tbody tr:last-child td{border-bottom:none}
 tbody tr:hover{background:var(--surface-2)}
 .audit-target-scroll{max-width:240px;max-height:54px;overflow:auto;white-space:normal;word-break:break-word;font-weight:600;color:var(--text-2);line-height:1.35}
 .audit-detail-scroll{max-width:320px;max-height:72px;overflow:auto;white-space:normal;word-break:break-word;line-height:1.45}
+.audit-action-wrap{display:inline-flex;align-items:center;gap:6px;flex-wrap:nowrap;white-space:nowrap}
 .audit-cell-trigger{cursor:pointer;border-radius:8px;padding:4px 6px;margin:-4px -6px;transition:var(--transition)}
 .audit-cell-trigger:hover{background:var(--surface-2)}
 .audit-cell-modal{max-width:760px}
