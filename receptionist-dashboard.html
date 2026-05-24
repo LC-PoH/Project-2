@@ -3,9 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#4338ca">
+  <link rel="manifest" href="manifest.webmanifest">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none';">
   <title>Aastha Vidhya Mandir – Receptionist Dashboard</title>
-  <link rel="stylesheet" href="styles.css?v=20260524-2">
+  <link rel="stylesheet" href="styles.css?v=20260525-1">
 </head>
 <body>
 <div class="dashboard-layout">
@@ -964,7 +966,7 @@
   </div>
 </div>
 <div class="notifications-container"></div>
-<script src="script.js?v=20260524-2"></script>
+<script src="script.js?v=20260525-2"></script>
 <script>
   // ===== RECEPTIONIST SORT FUNCTIONS =====
   function sortRecStudents(col) {
@@ -1115,8 +1117,9 @@
   }
 
   // ===== OUTPASS =====
-  function issueOutpass(e) {
+  async function issueOutpass(e) {
     e.preventDefault();
+    await HMS.refreshSessionState();
     const sel = document.getElementById('outpassStudent');
     const studentId = sel.value;
     const student = HMS.findById('users', studentId);
@@ -1158,9 +1161,13 @@
     const outpasses = (HMS.get('outpasses') || []).sort((a,b) => new Date(b.issuedAt) - new Date(a.issuedAt));
     const tbody = document.getElementById('outpassBody');
     if (!tbody) return;
+    const dashBody = document.getElementById('dashOutpassBody');
     const now = new Date();
     if (!outpasses.length) {
       tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted" style="padding:24px">No gate passes issued yet</td></tr>';
+      if (dashBody) {
+        dashBody.innerHTML = '<tr><td colspan="4" class="text-center text-muted" style="padding:12px">No gate passes issued yet</td></tr>';
+      }
       return;
     }
     tbody.innerHTML = outpasses.map((op, i) => {
@@ -1180,7 +1187,6 @@
       </tr>`;
     }).join('');
     // Dashboard outpass widget
-    const dashBody = document.getElementById('dashOutpassBody');
     if (dashBody) {
       const active = outpasses.filter(op => op.status === 'active');
       dashBody.innerHTML = active.length ? active.slice(0,5).map(op => `<tr>
@@ -1192,7 +1198,8 @@
     }
   }
 
-  function markOutpassReturn(id) {
+  async function markOutpassReturn(id) {
+    await HMS.refreshSessionState();
     HMS.update('outpasses', id, { status: 'returned', returnedAt: new Date().toISOString() });
     const op = HMS.findById('outpasses', id);
     if (op) {
@@ -1263,7 +1270,8 @@
     openModal('recRespondRequestModal');
   }
 
-  function recActOnRequest(newStatus) {
+  async function recActOnRequest(newStatus) {
+    await HMS.refreshSessionState();
     const id = document.getElementById('recRespondRequestId').value;
     const note = document.getElementById('recRespondNote').value.trim();
     if (!id) return;
@@ -1333,8 +1341,9 @@
     }
   }
 
-  function recCollectPayment(e) {
+  async function recCollectPayment(e) {
     e.preventDefault();
+    await HMS.refreshSessionState();
     const studentId = document.getElementById('recPayStudent').value;
     const student = HMS.findById('users', studentId);
     if (!student) return notify('Select a valid student', 'danger');
@@ -1413,8 +1422,9 @@
     }).join('');
   }
 
-  function recPostNotice(e) {
+  async function recPostNotice(e) {
     e.preventDefault();
+    await HMS.refreshSessionState();
     const session = HMS.getSession();
     HMS.add('notices', {
       id: HMS.genId(),
