@@ -7,6 +7,13 @@ h2{color:#4338ca}.ok{color:#10b981}.err{color:#ef4444}pre{background:#f1f5f9;pad
 <?php
 require_once __DIR__ . '/db.php';
 
+$remote = $_SERVER['REMOTE_ADDR'] ?? '';
+if (!in_array($remote, ['127.0.0.1', '::1'], true)) {
+    http_response_code(403);
+    echo "<p class='err'>Forbidden</p>";
+    exit;
+}
+
 $pdo = getDB();
 
 $users = [
@@ -88,6 +95,14 @@ $visitors = [
     ['v3','Anita Singh', 'u5','9876543222','2025-04-09 14:00','2025-04-09 16:30', 'checked-out', 'Friend'],
 ];
 
+$attendance = [
+    ['at1', 'u2',  '2025-04-10', 'present',  '21:30', null],
+    ['at2', 'u4',  '2025-04-10', 'present',  '20:45', null],
+    ['at3', 'u5',  '2025-04-10', 'out-pass', null,    '09:00'],
+    ['at4', 'u6',  '2025-04-10', 'present',  '21:05', null],
+    ['at5', 'u7',  '2025-04-10', 'out',      '18:20', '07:30'],
+];
+
 $notices = [
     ['n1','Monthly Fee Due – May 2025','Monthly hostel fee for May 2025 is due by 10th May. Please pay on time to avoid ₹500 late fee charges.',  '2025-04-01','warning','Admin'],
     ['n2','Water Supply Interruption', 'Water supply will be interrupted on April 12th from 10 AM to 2 PM for annual pipe maintenance.',           '2025-04-08','info',   'Admin'],
@@ -147,13 +162,16 @@ echo "<h3>Inserting Visitors…</h3>";
 $vSql = 'INSERT IGNORE INTO visitors (id,name,student_id,phone,check_in,check_out,status,purpose) VALUES (?,?,?,?,?,?,?,?)';
 foreach ($visitors as $v) { tryInsert($pdo, $vSql, $v, "Visitor: {$v[1]}"); }
 
+echo "<h3>Inserting Attendance…</h3>";
+$aSql = 'INSERT IGNORE INTO attendance (id,student_id,att_date,status,check_in,check_out) VALUES (?,?,?,?,?,?)';
+foreach ($attendance as $a) { tryInsert($pdo, $aSql, $a, "Attendance: {$a[0]}"); }
+
 echo "<h3>Inserting Notices…</h3>";
 $nSql = 'INSERT IGNORE INTO notices (id,title,body,notice_date,type,author) VALUES (?,?,?,?,?,?)';
 foreach ($notices as $n) { tryInsert($pdo, $nSql, $n, "Notice: {$n[1]}"); }
 
 if (empty($errors)) {
     echo "<h3 class='ok'>✅ Setup complete! <a href='../login.html'>Go to Login →</a></h3>";
-    echo "<p>Demo credentials: <code>admin / admin123</code> | <code>student123 / pass123</code> | <code>reception / rec123</code></p>";
 } else {
     echo "<h3 class='err'>Setup finished with " . count($errors) . " error(s). See above.</h3>";
 }
