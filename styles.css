@@ -472,6 +472,8 @@ thead th{background:var(--bg);color:var(--text-2);font-weight:600;font-size:11px
 tbody td{padding:8px 16px;border-bottom:1px solid var(--border);color:var(--text);vertical-align:middle}
 tbody tr:last-child td{border-bottom:none}
 tbody tr:hover{background:var(--surface-2)}
+.audit-target-scroll{max-width:240px;max-height:54px;overflow:auto;white-space:normal;word-break:break-word;font-weight:600;color:var(--text-2);line-height:1.35}
+.audit-detail-scroll{max-width:320px;max-height:72px;overflow:auto;white-space:normal;word-break:break-word;line-height:1.45}
 .td-name{display:flex;align-items:center;gap:10px}
 .occupant-row{display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border)}
 .occupant-row:last-child{border-bottom:none}
@@ -645,6 +647,7 @@ select.filter-select{padding:8px 10px;border:1px solid var(--border);border-radi
 .activity-body{flex:1}
 .activity-text{font-size:13px;color:var(--text);line-height:1.5}
 .activity-time{font-size:11px;color:var(--text-3);margin-top:3px}
+.activity-feed-scroll{max-height:320px;overflow-y:auto;padding-right:6px}
 
 /* ===== CHART ===== */
 .chart-container{position:relative;min-height:250px}
