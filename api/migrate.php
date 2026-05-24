@@ -4,6 +4,12 @@ define('DB_HOST', 'localhost');
 define('DB_USER', 'root');
 define('DB_PASS', '');
 
+if (php_sapi_name() !== 'cli') {
+    http_response_code(403);
+    echo 'Forbidden';
+    exit;
+}
+
 header('Content-Type: text/html');
 
 try {
