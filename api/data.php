@@ -1,11 +1,15 @@
 <?php
-header('Content-Type: application/json');
+require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/db.php';
 
-$input  = json_decode(file_get_contents('php://input'), true) ?? [];
-$jsKey  = $input['table']  ?? '';
-$action = $input['action'] ?? '';
-$data   = $input['data']   ?? [];
+require_method('POST');
+$session = require_auth(['student', 'receptionist', 'admin']);
+require_csrf();
+
+$input  = read_json_input();
+$jsKey  = (string)($input['table']  ?? '');
+$action = (string)($input['action'] ?? '');
+$data   = is_array($input['data'] ?? null) ? $input['data'] : [];
 
 // Map JS camelCase keys → SQL table/column names
 // CHANGED: Added 'status' to users map so active/inactive toggle writes to DB
@@ -99,9 +103,89 @@ $tableMap = [
 ];
 
 if (!isset($tableMap[$jsKey]) || !in_array($action, ['add','update','remove'])) {
-    echo json_encode(['success' => false, 'error' => 'Invalid request']);
-    exit;
+    json_response(['success' => false, 'error' => 'Invalid request'], 400);
 }
+
+function can_mutate(string $role, string $table, string $action): bool {
+    if ($role === 'admin') {
+        return true;
+    }
+
+    if ($role === 'receptionist') {
+        $allowed = [
+            'rooms' => ['update'],
+            'bookings' => ['add', 'update'],
+            'payments' => ['add', 'update'],
+            'requests' => ['update'],
+            'visitors' => ['add', 'update', 'remove'],
+            'attendance' => ['add', 'update', 'remove'],
+            'outpasses' => ['add', 'update', 'remove'],
+        ];
+        return in_array($action, $allowed[$table] ?? [], true);
+    }
+
+    if ($role === 'student') {
+        if ($table === 'users' && $action === 'update') {
+            return true;
+        }
+        if ($table === 'requests' && $action === 'add') {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+if (!can_mutate($session['role'], $jsKey, $action)) {
+    json_response(['success' => false, 'error' => 'Forbidden'], 403);
+}
+
+function sanitize_data_payload(string $tableKey, array $payload): array {
+    $textFields = [
+        'username', 'name', 'email', 'phone', 'studentId', 'roomId', 'status', 'bloodGroup', 'emergencyContact',
+        'course', 'year', 'fatherName', 'address', 'number', 'floor', 'type', 'bathrooms', 'studentName',
+        'studentSid', 'checkIn', 'checkOut', 'method', 'date', 'txnId', 'reference', 'collectedBy', 'collectedAt',
+        'destination', 'returnDateTime', 'remarks', 'reason', 'relation', 'idProof', 'title', 'body', 'author',
+    ];
+
+    $clean = [];
+    foreach ($payload as $k => $v) {
+        if ($k === 'id' && is_string($v)) {
+            $clean['id'] = mb_substr(trim($v), 0, 40);
+            continue;
+        }
+        if (in_array($k, $textFields, true)) {
+            $clean[$k] = clean_text(is_scalar($v) ? (string)$v : null, $k === 'body' || $k === 'address' || $k === 'description' || $k === 'remarks' ? 1000 : 150);
+            continue;
+        }
+        if (in_array($k, ['amount', 'rent'], true)) {
+            $num = is_numeric($v) ? (float)$v : 0.0;
+            $clean[$k] = max(0, min($num, 1000000));
+            continue;
+        }
+        if (in_array($k, ['beds', 'occupied'], true)) {
+            $num = is_numeric($v) ? (int)$v : 0;
+            $clean[$k] = max(0, min($num, 100));
+            continue;
+        }
+        if ($k === 'amenities' && is_array($v)) {
+            $clean[$k] = array_values(array_filter(array_map(static fn($a) => clean_text(is_scalar($a) ? (string)$a : null, 40), $v)));
+            continue;
+        }
+        if ($k === 'description') {
+            $clean[$k] = clean_text(is_scalar($v) ? (string)$v : null, 1000);
+            continue;
+        }
+
+        if (is_scalar($v)) {
+            $clean[$k] = clean_text((string)$v, 255);
+        }
+    }
+
+    return $clean;
+}
+
+$data = sanitize_data_payload($jsKey, $data);
 
 $cfg       = $tableMap[$jsKey];
 $tableName = $cfg['table'];
@@ -110,10 +194,51 @@ $colMap    = $cfg['columns'];
 try {
     $pdo = getDB();
 
+    if (($action === 'update' || $action === 'remove') && empty($data['id'])) {
+        json_response(['success' => false, 'error' => 'Missing id'], 400);
+    }
+
+    if ($session['role'] === 'student') {
+        if ($jsKey === 'users') {
+            if (($data['id'] ?? '') !== $session['id']) {
+                json_response(['success' => false, 'error' => 'Forbidden'], 403);
+            }
+
+            $allowedProfileFields = ['id','name','email','phone','bloodGroup','emergencyContact','course','year','fatherName','address'];
+            $data = array_intersect_key($data, array_flip($allowedProfileFields));
+        }
+
+        if ($jsKey === 'requests') {
+            $data['studentId'] = $session['id'];
+            $data['date'] = $data['date'] ?? date('Y-m-d');
+            $data['status'] = 'pending';
+            $data['response'] = null;
+        }
+
+        if ($jsKey === 'payments') {
+            if ($action === 'add') {
+                $data['studentId'] = $session['id'];
+                $data['status'] = 'paid';
+                if (empty($data['txnId'])) {
+                    $data['txnId'] = 'TXN' . time() . random_int(100, 999);
+                }
+            }
+
+            if ($action === 'update') {
+                $ownerCheck = $pdo->prepare('SELECT student_id FROM payments WHERE id = ? LIMIT 1');
+                $ownerCheck->execute([$data['id']]);
+                $rowOwner = $ownerCheck->fetch();
+                if (!$rowOwner || ($rowOwner['student_id'] ?? '') !== $session['id']) {
+                    json_response(['success' => false, 'error' => 'Forbidden'], 403);
+                }
+            }
+        }
+    }
+
     if ($action === 'remove') {
         $pdo->prepare("DELETE FROM $tableName WHERE id = ?")->execute([$data['id']]);
-        echo json_encode(['success' => true]);
-        exit;
+        audit_log($pdo, 'data_remove', 'success', $tableName, (string)$data['id'], 'Removed row from ' . $tableName, $session);
+        json_response(['success' => true]);
     }
 
     // Build db row from JS data
@@ -130,7 +255,7 @@ try {
     }
 
     // Hash password when adding/updating users
-    if ($jsKey === 'users' && isset($data['password']) && $data['password'] !== '') {
+    if ($jsKey === 'users' && isset($data['password']) && is_string($data['password']) && $data['password'] !== '') {
         $row['password_hash'] = password_hash($data['password'], PASSWORD_DEFAULT);
     }
 
@@ -139,17 +264,19 @@ try {
         $ph    = implode(',', array_map(fn($c) => ":$c", $cols));
         $colsQ = implode(',', $cols);
         $pdo->prepare("INSERT IGNORE INTO $tableName ($colsQ) VALUES ($ph)")->execute($row);
+        audit_log($pdo, 'data_add', 'success', $tableName, (string)($row['id'] ?? ''), 'Added row to ' . $tableName, $session);
     } else {
         // update – only set non-id columns
         $id = $row['id'];
         unset($row['id']);
-        if (empty($row)) { echo json_encode(['success' => true]); exit; }
+        if (empty($row)) { json_response(['success' => true]); }
         $sets = implode(',', array_map(fn($c) => "$c=:$c", array_keys($row)));
         $row['id'] = $id;
         $pdo->prepare("UPDATE $tableName SET $sets WHERE id=:id")->execute($row);
+        audit_log($pdo, 'data_update', 'success', $tableName, (string)$id, 'Updated row in ' . $tableName, $session);
     }
 
-    echo json_encode(['success' => true]);
+    json_response(['success' => true]);
 } catch (Exception $e) {
-    echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+    json_response(['success' => false, 'error' => 'Server error'], 500);
 }
