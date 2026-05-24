@@ -3,9 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#4338ca">
+  <link rel="manifest" href="manifest.webmanifest">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none';">
   <title>Aastha Vidhya Mandir – Login</title>
-  <link rel="stylesheet" href="styles.css?v=20260524-2">
+  <link rel="stylesheet" href="styles.css?v=20260525-1">
 </head>
 <body>
 <div class="login-page animate-gradient">
@@ -136,7 +138,14 @@
           </div>
         </div>
 
+        <div class="form-group" id="otpGroup" style="display:none;">
+          <label class="form-label" for="otpCode">Authenticator Code</label>
+          <input class="form-control" type="text" id="otpCode" placeholder="Enter 6-digit code or backup code" inputmode="text" maxlength="16" autocomplete="one-time-code">
+          <div class="form-hint">Enter your authenticator 6-digit code or a one-time backup recovery code.</div>
+        </div>
+
         <button type="submit" class="btn-login">Sign In</button>
+        <button type="button" class="btn btn-secondary" id="otpCancelBtn" style="display:none; width:100%; margin-top:10px;" onclick="cancelTwoFactorLoginState(true)">Use different account</button>
       </form>
 
     </div>
@@ -144,13 +153,13 @@
 </div>
 
 <div class="notifications-container"></div>
-<script src="script.js?v=20260524-2"></script>
+<script src="script.js?v=20260525-2"></script>
 <script>
   (function() {
     // Recovery path for rare cache/cdn race issues where script.js fails to initialize.
     if (typeof window.handleLogin === 'function') return;
     var s = document.createElement('script');
-    s.src = 'script.js?v=20260524-2&retry=' + Date.now();
+    s.src = 'script.js?v=20260525-2&retry=' + Date.now();
     document.body.appendChild(s);
   })();
 </script>
