@@ -11,6 +11,7 @@
 
 -- Drop old tables if they exist (order matters for FK constraints)
 DROP TABLE IF EXISTS outpasses;
+DROP TABLE IF EXISTS audit_logs;
 DROP TABLE IF EXISTS payments;
 DROP TABLE IF EXISTS bookings;
 DROP TABLE IF EXISTS requests;
@@ -80,7 +81,26 @@ CREATE TABLE IF NOT EXISTS payments (
     txn_id       VARCHAR(60),
     reference_no VARCHAR(100),
     collected_by VARCHAR(100),
-    collected_at DATETIME
+    collected_at DATETIME,
+    INDEX idx_payments_student_status (student_id, status),
+    UNIQUE KEY uniq_payments_student_reference (student_id, reference_no)
+);
+
+CREATE TABLE IF NOT EXISTS audit_logs (
+    id            BIGINT AUTO_INCREMENT PRIMARY KEY,
+    actor_user_id VARCHAR(30),
+    actor_role    VARCHAR(30),
+    action_name   VARCHAR(100) NOT NULL,
+    target_type   VARCHAR(50),
+    target_id     VARCHAR(50),
+    status        VARCHAR(20) NOT NULL,
+    details       TEXT,
+    ip_address    VARCHAR(64),
+    user_agent    VARCHAR(255),
+    created_at    DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_audit_created_at (created_at),
+    INDEX idx_audit_actor (actor_user_id, actor_role),
+    INDEX idx_audit_action (action_name)
 );
 
 CREATE TABLE IF NOT EXISTS requests (
