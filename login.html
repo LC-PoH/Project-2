@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Aastha Vidhya Mandir – Login</title>
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=20260524-2">
 </head>
 <body>
 <div class="login-page animate-gradient">
@@ -138,26 +138,20 @@
         <button type="submit" class="btn-login">Sign In</button>
       </form>
 
-      <div class="demo-creds">
-        <div class="demo-creds-title">Demo Credentials – Click to fill</div>
-        <div class="demo-cred-item" onclick="fillCred('admin','admin123','admin')">
-          <span class="role">Admin / Owner</span>
-          <span class="creds">admin / admin123</span>
-        </div>
-        <div class="demo-cred-item" onclick="fillCred('student123','pass123','student')">
-          <span class="role">Student</span>
-          <span class="creds">student123 / pass123</span>
-        </div>
-        <div class="demo-cred-item" onclick="fillCred('reception','rec123','receptionist')">
-          <span class="role">Receptionist</span>
-          <span class="creds">reception / rec123</span>
-        </div>
-      </div>
     </div>
   </div>
 </div>
 
 <div class="notifications-container"></div>
-<script src="script.js"></script>
+<script src="script.js?v=20260524-2"></script>
+<script>
+  (function() {
+    // Recovery path for rare cache/cdn race issues where script.js fails to initialize.
+    if (typeof window.handleLogin === 'function') return;
+    var s = document.createElement('script');
+    s.src = 'script.js?v=20260524-2&retry=' + Date.now();
+    document.body.appendChild(s);
+  })();
+</script>
 </body>
 </html>
