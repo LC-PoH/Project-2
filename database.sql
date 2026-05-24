@@ -18,6 +18,8 @@ DROP TABLE IF EXISTS requests;
 DROP TABLE IF EXISTS visitors;
 DROP TABLE IF EXISTS attendance;
 DROP TABLE IF EXISTS notices;
+DROP TABLE IF EXISTS `2fa_recovery_codes`;
+DROP TABLE IF EXISTS twofa_recovery_codes;
 DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS rooms;
 
@@ -26,6 +28,8 @@ CREATE TABLE IF NOT EXISTS users (
     username          VARCHAR(50)  NOT NULL UNIQUE,
     password_hash     VARCHAR(255) NOT NULL,
     role              ENUM('student','receptionist','admin') NOT NULL,
+    twofa_enabled     TINYINT(1) NOT NULL DEFAULT 0,
+    twofa_secret      VARCHAR(64),
     name              VARCHAR(100) NOT NULL,
     email             VARCHAR(100) NOT NULL,
     phone             VARCHAR(20),
@@ -39,6 +43,16 @@ CREATE TABLE IF NOT EXISTS users (
     father_name       VARCHAR(100),
     address           TEXT,
     created_at        DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS `2fa_recovery_codes` (
+    id         BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id    VARCHAR(30) NOT NULL,
+    code_hash  CHAR(64) NOT NULL,
+    used_at    DATETIME NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_twofa_recovery_user (user_id),
+    INDEX idx_twofa_recovery_used (used_at)
 );
 
 CREATE TABLE IF NOT EXISTS rooms (
