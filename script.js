@@ -29,8 +29,19 @@ function updateThemeToggleIcon(theme) {
   }
 }
 
+function initPwa() {
+  if (!('serviceWorker' in navigator)) return;
+  if (window.location.protocol !== 'http:' && window.location.protocol !== 'https:') return;
+  navigator.serviceWorker.register('sw.js').catch(() => {
+    // PWA support is optional; ignore registration failures.
+  });
+}
+
 // Initialize theme on page load
-document.addEventListener('DOMContentLoaded', initTheme);
+document.addEventListener('DOMContentLoaded', () => {
+  initTheme();
+  initPwa();
+});
 
 // ===== DATA STORE =====
 const HMS = {
@@ -162,7 +173,9 @@ const HMS = {
 
   async refreshSessionState() {
     try {
-      const res = await fetch('api/session.php', { credentials: 'same-origin' });
+      // Timestamp query param busts any service-worker or browser cache so we
+      // always receive the current PHP session's CSRF token, not a stale copy.
+      const res = await fetch(`api/session.php?_=${Date.now()}`, { credentials: 'same-origin' });
       if (!res.ok) return false;
       const data = await res.json().catch(() => ({}));
       if (!data.success || !data.user) return false;
@@ -253,15 +266,124 @@ const HMS = {
     return 'p' + (max + 1);
   },
 
-  getSession() { return JSON.parse(sessionStorage.getItem('hms_session') || 'null'); },
-  setSession(data) { sessionStorage.setItem('hms_session', JSON.stringify(data)); },
-  getCsrfToken() { return sessionStorage.getItem('hms_csrf') || ''; },
-  setCsrfToken(token) { sessionStorage.setItem('hms_csrf', token || ''); },
-  clearSession() { sessionStorage.removeItem('hms_session'); sessionStorage.removeItem('hms_csrf'); },
+  getSession() {
+    const sessionRaw = sessionStorage.getItem('hms_session') || localStorage.getItem('hms_session') || 'null';
+    const parsed = JSON.parse(sessionRaw);
+    if (parsed && !sessionStorage.getItem('hms_session')) {
+      sessionStorage.setItem('hms_session', JSON.stringify(parsed));
+    }
+    return parsed;
+  },
+  setSession(data) {
+    const raw = JSON.stringify(data);
+    sessionStorage.setItem('hms_session', raw);
+    localStorage.setItem('hms_session', raw);
+  },
+  getCsrfToken() {
+    const token = sessionStorage.getItem('hms_csrf') || localStorage.getItem('hms_csrf') || '';
+    if (token && !sessionStorage.getItem('hms_csrf')) {
+      sessionStorage.setItem('hms_csrf', token);
+    }
+    return token;
+  },
+  setCsrfToken(token) {
+    const value = token || '';
+    sessionStorage.setItem('hms_csrf', value);
+    localStorage.setItem('hms_csrf', value);
+  },
+  clearSession() {
+    sessionStorage.removeItem('hms_session');
+    sessionStorage.removeItem('hms_csrf');
+    localStorage.removeItem('hms_session');
+    localStorage.removeItem('hms_csrf');
+  },
 };
 
 // ===== AUTH =====
 let loginInFlight = false;
+let pendingTwoFactorChallenge = null;
+let adminRecoveryCodes = [];
+let adminTwofaState = { enabled: false, recoveryRemaining: 0, recoveryLastGeneratedAt: null };
+let qrLibraryLoadPromise = null;
+
+function ensureQrLibraryLoaded() {
+  if (typeof QRCode !== 'undefined') {
+    return Promise.resolve(true);
+  }
+  if (qrLibraryLoadPromise) {
+    return qrLibraryLoadPromise;
+  }
+
+  qrLibraryLoadPromise = new Promise((resolve) => {
+    const existing = document.querySelector('script[data-qr-lib="local"]');
+    if (existing) {
+      existing.addEventListener('load', () => resolve(typeof QRCode !== 'undefined'), { once: true });
+      existing.addEventListener('error', () => resolve(false), { once: true });
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = `assets/vendor/qrcode.min.js?v=${Date.now()}`;
+    script.dataset.qrLib = 'local';
+    script.onload = () => resolve(typeof QRCode !== 'undefined');
+    script.onerror = () => resolve(false);
+    document.head.appendChild(script);
+  });
+
+  return qrLibraryLoadPromise;
+}
+
+function redirectAfterLogin(user) {
+  const routes = { admin:'owner-dashboard.html', student:'student-dashboard.html', receptionist:'receptionist-dashboard.html' };
+  HMS.setSession({ userId: user.id, role: user.role, name: user.name });
+  window.location.href = routes[user.role] || 'login.html';
+}
+
+function setLoginMode(isTwoFactorStep) {
+  const usernameEl = document.getElementById('username');
+  const passwordEl = document.getElementById('password');
+  const roleEl = document.getElementById('role');
+  const roleTrigger = document.getElementById('roleTrigger');
+  const otpGroup = document.getElementById('otpGroup');
+  const otpInput = document.getElementById('otpCode');
+  const cancelBtn = document.getElementById('otpCancelBtn');
+  const passwordToggle = document.getElementById('passwordToggle');
+
+  if (usernameEl) usernameEl.disabled = isTwoFactorStep;
+  if (passwordEl) passwordEl.disabled = isTwoFactorStep;
+  if (roleEl) roleEl.disabled = isTwoFactorStep;
+  if (roleTrigger) {
+    roleTrigger.style.pointerEvents = isTwoFactorStep ? 'none' : '';
+    roleTrigger.style.opacity = isTwoFactorStep ? '0.7' : '';
+  }
+  if (passwordToggle) passwordToggle.disabled = isTwoFactorStep;
+
+  if (otpGroup) otpGroup.style.display = isTwoFactorStep ? '' : 'none';
+  if (cancelBtn) cancelBtn.style.display = isTwoFactorStep ? '' : 'none';
+  if (!isTwoFactorStep && otpInput) otpInput.value = '';
+}
+
+function setLoginButtonState(loading) {
+  const btn = document.querySelector('.btn-login');
+  if (!btn) return;
+  if (loading) {
+    btn.textContent = pendingTwoFactorChallenge ? 'Verifying code…' : 'Signing in…';
+    btn.disabled = true;
+    return;
+  }
+  btn.textContent = pendingTwoFactorChallenge ? 'Verify Code' : 'Sign In';
+  btn.disabled = false;
+}
+
+function cancelTwoFactorLoginState(showInfo = false) {
+  pendingTwoFactorChallenge = null;
+  setLoginMode(false);
+  setLoginButtonState(false);
+  loginInFlight = false;
+  if (showInfo) {
+    notify('2FA step cancelled. You can sign in with another account.', 'info');
+  }
+}
 
 async function handleLogin(e) {
   e.preventDefault();
@@ -269,44 +391,84 @@ async function handleLogin(e) {
     return;
   }
 
-  const role = document.getElementById('role').value;
-  const username = document.getElementById('username').value.trim();
-  const password = document.getElementById('password').value;
-  const btn = e.target.querySelector('.btn-login');
+  const roleEl = document.getElementById('role');
+  const usernameEl = document.getElementById('username');
+  const passwordEl = document.getElementById('password');
+  const otpEl = document.getElementById('otpCode');
+  const role = roleEl ? roleEl.value : '';
+  const username = usernameEl ? usernameEl.value.trim() : '';
+  const password = passwordEl ? passwordEl.value : '';
+  const otp = otpEl ? otpEl.value.trim() : '';
+  const otpNormalized = (otp || '').replace(/\s+/g, '').toUpperCase();
 
-  if (!username || !password) { notify('Please fill in all fields', 'error'); return; }
+  if (!pendingTwoFactorChallenge && (!username || !password)) {
+    notify('Please fill in all fields', 'error');
+    return;
+  }
+  if (pendingTwoFactorChallenge && !otpNormalized) {
+    notify('Enter your authenticator code or backup code', 'error');
+    return;
+  }
+  if (pendingTwoFactorChallenge && !(/^\d{6}$/.test(otpNormalized.replace(/\D/g, '')) || /^[A-Z0-9-]{8,16}$/.test(otpNormalized))) {
+    notify('Enter a valid 6-digit authenticator code or backup code', 'error');
+    return;
+  }
 
   loginInFlight = true;
-  btn.textContent = 'Signing in…';
-  btn.disabled = true;
-
-  const routes = { admin:'owner-dashboard.html', student:'student-dashboard.html', receptionist:'receptionist-dashboard.html' };
+  setLoginButtonState(true);
 
   try {
-    const res = await fetch('api/login.php', {
+    const isOtpStep = !!pendingTwoFactorChallenge;
+    const endpoint = isOtpStep ? 'api/login-2fa.php' : 'api/login.php';
+    const payload = isOtpStep
+      ? { challengeId: pendingTwoFactorChallenge, code: otpNormalized }
+      : { username, password, role };
+
+    const res = await fetch(endpoint, {
       method: 'POST',
       credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password, role }),
+      body: JSON.stringify(payload),
     });
     const data = await res.json();
-    if (data.success) {
-      HMS.setSession({ userId: data.user.id, role: data.user.role, name: data.user.name });
-      HMS.setCsrfToken(data.csrfToken || '');
-      window.location.href = routes[data.user.role];
+
+    if (data.success && data.twoFactorRequired) {
+      pendingTwoFactorChallenge = data.challengeId || null;
+      if (!pendingTwoFactorChallenge) {
+        throw new Error('Missing 2FA challenge id');
+      }
+      setLoginMode(true);
+      setLoginButtonState(false);
+      loginInFlight = false;
+      if (otpEl) otpEl.focus();
+      notify('Password verified. Enter your authenticator code or backup code to continue.', 'info');
       return;
+    }
+
+    if (data.success) {
+      pendingTwoFactorChallenge = null;
+      HMS.setCsrfToken(data.csrfToken || '');
+      if (data.usedRecoveryCode) {
+        notify(`Signed in with backup code. Remaining backup codes: ${data.recoveryRemaining ?? 'unknown'}.`, 'warning');
+      }
+      redirectAfterLogin(data.user);
+      return;
+    }
+
+    if (pendingTwoFactorChallenge && /expired|challenge|login again/i.test(data.error || '')) {
+      cancelTwoFactorLoginState(false);
     }
     notify(data.error || 'Invalid credentials. Please check and try again.', 'error');
   } catch (err) {
     notify('Login server unavailable. Please try again shortly.', 'error');
   }
 
-  btn.textContent = 'Sign In';
-  btn.disabled = false;
+  setLoginButtonState(false);
   loginInFlight = false;
 }
 
 function fillCred(username, password, role) {
+  cancelTwoFactorLoginState(false);
   document.getElementById('username').value = username;
   document.getElementById('password').value = password;
   document.getElementById('role').value = role;
@@ -339,6 +501,9 @@ function closeRolePicker() {
 }
 
 function selectRoleOption(el) {
+  if (pendingTwoFactorChallenge) {
+    cancelTwoFactorLoginState(false);
+  }
   const value = el.dataset.value;
   document.getElementById('role').value = value;
   document.querySelectorAll('.role-option').forEach(o => o.classList.remove('selected'));
@@ -398,12 +563,27 @@ function confirmLogout() {
   });
 }
 
-function requireAuth(requiredRole) {
+async function requireAuth(requiredRole) {
   HMS.init();
-  const session = HMS.getSession();
-  if (!session) { window.location.href = 'login.html'; return null; }
-  if (requiredRole && session.role !== requiredRole) { window.location.href = 'login.html'; return null; }
-  return session;
+
+  // Fast path: session already in local storage
+  let session = HMS.getSession();
+  if (session && (!requiredRole || session.role === requiredRole)) {
+    return session;
+  }
+
+  // Slow path: ask the server (handles hard-refresh / SW cache miss)
+  const restored = await HMS.refreshSessionState();
+  if (restored) {
+    session = HMS.getSession();
+    if (session && (!requiredRole || session.role === requiredRole)) {
+      return session;
+    }
+  }
+
+  // Genuinely not logged in
+  window.location.href = 'login.html';
+  return null;
 }
 
 // ===== NAVIGATION =====
@@ -681,24 +861,59 @@ function exportTableCSV(tableId, filename) {
 }
 
 // ===== STUDENT DASHBOARD =====
-async function initStudentDashboard() {
-  const localSession = requireAuth('student');
-  if (!localSession) return;
-  initSidebarUI();
-  const refreshed = await HMS.refreshSessionState();
-  const session = HMS.getSession() || localSession;
-  if (refreshed && session.role !== 'student') {
-    notify('Your active web session is not Student. Please login again as Student.', 'error');
-    HMS.clearSession();
-    window.location.href = 'login.html';
-    return;
+async function renderMyActivity(containerId) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  try {
+    const res = await fetch('api/my-activity.php?limit=10', { credentials: 'same-origin' });
+    const data = await res.json();
+    if (!data.success || !Array.isArray(data.logs) || !data.logs.length) {
+      el.innerHTML = '<p class="text-muted text-center" style="padding:16px 0">No recent activity found.</p>';
+      return;
+    }
+    el.innerHTML = data.logs.map((log, i) => {
+      const label = auditActionLabel(log.action_name || '-');
+      const statusClass = log.status === 'success' ? 'badge-success' : 'badge-danger';
+      const time = log.created_at ? fmtDateTime(log.created_at) : '-';
+      const details = escHtml(log.details || '');
+      const border = i < data.logs.length - 1 ? 'border-bottom:1px solid var(--border);' : '';
+      return `<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 0;${border}">
+        <div style="flex:1">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <span class="badge badge-secondary">${escHtml(label)}</span>
+            <span class="badge ${statusClass}">${escHtml(log.status || '-')}</span>
+            <span class="text-muted" style="font-size:12px">${escHtml(time)}</span>
+          </div>
+          ${details ? `<div class="text-muted" style="font-size:12px;margin-top:4px">${details}</div>` : ''}
+        </div>
+      </div>`;
+    }).join('');
+  } catch (e) {
+    el.innerHTML = '<p class="text-muted text-center" style="padding:16px 0">Unable to load activity.</p>';
   }
+}
+
+async function initStudentDashboard() {
+  const session = await requireAuth('student');
+  if (!session) return;
+  initSidebarUI();
+  await HMS.refreshSessionState();
   initTopbar(session);
   showPage('dashboard');
-  await HMS.syncFromDB();
+  const synced = await HMS.syncFromDB();
   const student = HMS.findById('users', session.userId);
   if (!student) {
-    notify('Unable to load student profile. Please login again.', 'error');
+    if (!synced) {
+      // Sync failed — verify whether the PHP session is still active before forcing logout.
+      // (syncFromDB can fail on a transient network error even when the session is valid.)
+      const sessionStillValid = await HMS.refreshSessionState();
+      if (sessionStillValid) {
+        notify('Unable to load your data. Please refresh the page.', 'error');
+        return; // Session is valid — stay on page, let user retry
+      }
+    }
+    // Session is genuinely expired, or sync succeeded but student ID is not in DB.
+    notify('Your session has expired. Please login again.', 'error');
     HMS.clearSession();
     window.location.href = 'login.html';
     return;
@@ -1053,8 +1268,13 @@ function getAuditRisk(log) {
   if (status === 'failed' && action === 'login') return { level: 'high', score: 90 };
   if (status === 'failed' && action === 'payment_submit') return { level: 'high', score: 85 };
   if (action === 'data_remove') return { level: 'high', score: 80 };
+  if (action === 'twofa_disable') return { level: 'high', score: 75 };
   if (status === 'failed') return { level: 'medium', score: 60 };
   if (action === 'password_change') return { level: 'medium', score: 55 };
+  if (action === 'twofa_recovery_regenerate') return { level: 'medium', score: 50 };
+  if (action === 'login_2fa_recovery') return { level: 'medium', score: 50 };
+  if (action === 'twofa_enable') return { level: 'medium', score: 45 };
+  if (action === 'twofa_setup_begin') return { level: 'medium', score: 40 };
   if (details.includes('forbidden') || details.includes('invalid')) return { level: 'medium', score: 50 };
   return { level: 'low', score: 20 };
 }
@@ -1115,6 +1335,13 @@ function auditActionLabel(action) {
     data_remove: 'Data Remove',
     password_change: 'Password Change',
     payment_submit: 'Payment Submit',
+    twofa_setup_begin: '2FA Setup Started',
+    twofa_setup_cancel: '2FA Setup Cancelled',
+    twofa_enable: '2FA Enabled',
+    twofa_disable: '2FA Disabled',
+    twofa_recovery_regenerate: '2FA Recovery Regenerated',
+    login_2fa: '2FA Login',
+    login_2fa_recovery: '2FA Recovery Login',
   };
   return map[action] || String(action || '-').replace(/_/g, ' ');
 }
@@ -1315,7 +1542,7 @@ async function renderAuditLogs(page = 1) {
         const rowStyle = risk.level === 'high' ? ' style="background:rgba(239,68,68,0.08)"' : (risk.level === 'medium' ? ' style="background:rgba(245,158,11,0.08)"' : '');
         return `<tr${rowStyle}>
           <td>${escHtml(fmtDateTime(log.created_at || ''))}</td>
-          <td><span class="badge badge-secondary">${escHtml(auditActionLabel(log.action_name || '-'))}</span> ${riskBadge(risk.level)}</td>
+          <td><div class="audit-action-wrap"><span class="badge badge-secondary">${escHtml(auditActionLabel(log.action_name || '-'))}</span>${riskBadge(risk.level)}</div></td>
           <td><span class="badge ${statusClass}">${escHtml(log.status || '-')}</span></td>
           <td>${escHtml(actorLabel)}</td>
           <td><div class="audit-target-scroll audit-cell-trigger" data-audit-label="Target" data-audit-value="${escAttr(targetLabel)}" title="Click to view full target">${escHtml(targetLabel)}</div></td>
@@ -1363,7 +1590,7 @@ function reconcileRooms() {
 }
 
 async function initAdminDashboard() {
-  const session = requireAuth('admin');
+  const session = await requireAuth('admin');
   if (!session) return;
   initSidebarUI();
   await HMS.refreshSessionState();
@@ -1375,7 +1602,359 @@ async function initAdminDashboard() {
   renderAdminRequests(); renderAdminPayments(); renderAdminActivity();
   renderNoticesAdmin(); populateRoomDropdowns();
   renderDbHealth();
+  loadAdminTwofaStatus(true);
   setTimeout(initCharts, 100);
+}
+
+function setAdminTwofaUi(state) {
+  const status = document.getElementById('twofaStatusMsg');
+  const setupBlock = document.getElementById('twofaSetupBlock');
+  const disableBlock = document.getElementById('twofaDisableBlock');
+  const recoveryBlock = document.getElementById('twofaRecoveryBlock');
+  const recoveryMsg = document.getElementById('twofaRecoveryMsg');
+  const recoveryCodes = document.getElementById('twofaRecoveryCodes');
+  const copyBtn = document.getElementById('twofaCopyRecoveryBtn');
+  const downloadBtn = document.getElementById('twofaDownloadRecoveryBtn');
+  const regenBtn = document.getElementById('twofaRegenRecoveryBtn');
+  const beginBtn = document.getElementById('twofaBeginBtn');
+  const confirmBtn = document.getElementById('twofaConfirmBtn');
+  const cancelSetupBtn = document.getElementById('twofaCancelSetupBtn');
+  const disableBtn = document.getElementById('twofaDisableBtn');
+  const secretInput = document.getElementById('twofaSecret');
+  const uriInput = document.getElementById('twofaUri');
+
+  adminTwofaState.enabled = !!state.enabled;
+  adminTwofaState.recoveryRemaining = Number(state.recoveryRemaining || 0);
+  adminTwofaState.recoveryLastGeneratedAt = state.recoveryLastGeneratedAt || null;
+
+  if (status) status.textContent = state.message || '';
+  if (setupBlock) setupBlock.style.display = state.setupPending ? '' : 'none';
+  if (disableBlock) disableBlock.style.display = state.enabled ? '' : 'none';
+  if (recoveryBlock) recoveryBlock.style.display = (state.enabled || (state.recoveryCodes || []).length) ? '' : 'none';
+  if (beginBtn) beginBtn.style.display = (!state.enabled && !state.setupPending) ? '' : 'none';
+  if (confirmBtn) confirmBtn.style.display = state.setupPending ? '' : 'none';
+  if (cancelSetupBtn) cancelSetupBtn.style.display = state.setupPending ? '' : 'none';
+  if (disableBtn) disableBtn.style.display = state.enabled ? '' : 'none';
+  if (secretInput) secretInput.value = state.secret || '';
+  if (uriInput) uriInput.value = state.otpauthUri || '';
+
+  adminRecoveryCodes = Array.isArray(state.recoveryCodes) ? state.recoveryCodes.slice() : adminRecoveryCodes;
+  const hasFreshCodes = adminRecoveryCodes.length > 0;
+  if (recoveryCodes) {
+    recoveryCodes.style.display = hasFreshCodes ? '' : 'none';
+    recoveryCodes.textContent = hasFreshCodes ? adminRecoveryCodes.join('\n') : '';
+  }
+  if (copyBtn) copyBtn.style.display = hasFreshCodes ? '' : 'none';
+  if (downloadBtn) downloadBtn.style.display = hasFreshCodes ? '' : 'none';
+  if (regenBtn) regenBtn.style.display = state.enabled ? '' : 'none';
+  if (recoveryMsg) {
+    const generatedAtText = adminTwofaState.recoveryLastGeneratedAt
+      ? ` Last regenerated: ${fmtDateTime(adminTwofaState.recoveryLastGeneratedAt)}.`
+      : '';
+    recoveryMsg.textContent = hasFreshCodes
+      ? `Save these backup codes now. Each code works once. They will not be shown again.${generatedAtText}`
+      : `Unused backup codes remaining: ${adminTwofaState.recoveryRemaining}.${generatedAtText}`;
+  }
+
+  renderAdminTwofaTopbarBadge();
+  renderTwofaQr(state.otpauthUri || '', state.setupPending);
+}
+
+function renderTwofaQr(otpauthUri, setupPending) {
+  const canvas = document.getElementById('twofaQrCanvas');
+  const wrap = document.getElementById('twofaQrWrap');
+  if (!canvas || !wrap) return;
+  const existingFallback = document.getElementById('twofaQrFallback');
+
+  if (!setupPending || !otpauthUri) {
+    canvas.style.display = '';
+    if (existingFallback) existingFallback.remove();
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+    return;
+  }
+
+  if (typeof QRCode === 'undefined') {
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#f8fafc';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#475569';
+      ctx.font = '12px sans-serif';
+      ctx.fillText('Loading QR library...', 36, 98);
+    }
+    ensureQrLibraryLoaded().then((ok) => {
+      if (ok) renderTwofaQr(otpauthUri, setupPending);
+    });
+    return;
+  }
+
+  if (typeof QRCode !== 'undefined' && QRCode && typeof QRCode.toCanvas === 'function') {
+    canvas.style.display = '';
+    if (existingFallback) existingFallback.remove();
+    QRCode.toCanvas(canvas, otpauthUri, { width: 180, margin: 1 }, () => {});
+    return;
+  }
+
+  if (typeof QRCode === 'function') {
+    canvas.style.display = 'none';
+    if (existingFallback) existingFallback.remove();
+    const holder = document.createElement('div');
+    holder.id = 'twofaQrFallback';
+    wrap.appendChild(holder);
+    try {
+      // QRCode.CorrectLevel.M === 0 (falsy) — always use H (=2) so we never accidentally
+      // pass undefined and override the default, which causes a "Too long data" throw.
+      const level = (QRCode.CorrectLevel && QRCode.CorrectLevel.H) || 2;
+      new QRCode(holder, { text: otpauthUri, width: 180, height: 180, correctLevel: level });
+    } catch (err) {
+      holder.style.cssText = 'font-size:11px;word-break:break-all;padding:8px;color:#475569;max-width:180px';
+      holder.textContent = 'QR render failed. Copy the URI above into any QR generator.';
+    }
+    return;
+  }
+
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+  canvas.style.display = '';
+  if (existingFallback) existingFallback.remove();
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = '#f8fafc';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = '#475569';
+  ctx.font = '12px sans-serif';
+  ctx.fillText('QR library failed to load.', 20, 85);
+  ctx.fillText('Use Setup URI below.', 38, 105);
+}
+
+function renderAdminTwofaTopbarBadge() {
+  const badge = document.getElementById('topbarTwofaBadge');
+  if (!badge) return;
+  badge.style.display = adminTwofaState.enabled ? '' : 'none';
+}
+
+async function postTwofaAction(payload) {
+  if (!HMS.getCsrfToken()) {
+    await HMS.refreshSessionState();
+  }
+
+  const send = async () => fetch('api/twofa.php', {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRF-Token': HMS.getCsrfToken() || '',
+    },
+    body: JSON.stringify(payload),
+  });
+
+  let res = await send();
+  let data = await res.json().catch(() => ({}));
+
+  if (!res.ok && res.status === 403 && String(data.error || '').toLowerCase().includes('csrf')) {
+    const refreshed = await HMS.refreshSessionState();
+    if (!refreshed) {
+      return { success: false, error: 'Session expired. Please login again.' };
+    }
+    res = await send();
+    data = await res.json().catch(() => ({}));
+  }
+
+  return data;
+}
+
+async function loadAdminTwofaStatus(silent = false) {
+  let data;
+  try {
+    const res = await fetch('api/twofa.php', { credentials: 'same-origin' });
+    data = await res.json();
+  } catch (e) {
+    if (!silent) notify('Unable to load 2FA settings right now', 'error');
+    return;
+  }
+
+  if (!data.success) {
+    if (!silent) notify(data.error || 'Unable to read 2FA status', 'error');
+    return;
+  }
+
+  const message = data.enabled
+    ? `2FA is enabled. Backup codes remaining: ${data.recoveryRemaining ?? 0}.`
+    : (data.setupPending
+      ? 'Setup in progress. Add the secret to your authenticator app and confirm using a 6-digit code.'
+      : '2FA is currently disabled. You can begin setup to protect this admin account.');
+
+  adminRecoveryCodes = [];
+
+  setAdminTwofaUi({
+    enabled: !!data.enabled,
+    setupPending: !!data.setupPending,
+    recoveryRemaining: Number(data.recoveryRemaining || 0),
+    recoveryLastGeneratedAt: data.recoveryLastGeneratedAt || null,
+    recoveryCodes: [],
+    secret: data.secret || '',
+    otpauthUri: data.otpauthUri || '',
+    message,
+  });
+}
+
+async function openAdminTwofaModal() {
+  openModal('adminTwofaModal');
+  adminRecoveryCodes = [];
+  setAdminTwofaUi({ enabled: false, setupPending: false, message: 'Checking 2FA status...' });
+  await HMS.refreshSessionState();
+  loadAdminTwofaStatus();
+}
+
+async function beginAdminTwofaSetup() {
+  try {
+    const data = await postTwofaAction({ action: 'begin_setup' });
+    if (!data.success) {
+      notify(data.error || 'Unable to start 2FA setup', 'error');
+      return;
+    }
+    setAdminTwofaUi({
+      enabled: false,
+      setupPending: true,
+      secret: data.secret || '',
+      otpauthUri: data.otpauthUri || '',
+      message: 'Setup started. Save this secret in your authenticator app, then verify with a 6-digit code.',
+    });
+    notify('2FA setup started', 'success');
+  } catch (e) {
+    notify('Unable to start 2FA setup', 'error');
+  }
+}
+
+async function cancelAdminTwofaSetup() {
+  try {
+    const data = await postTwofaAction({ action: 'cancel_setup' });
+    if (!data.success) {
+      notify(data.error || 'Unable to cancel setup', 'error');
+      return;
+    }
+    notify('2FA setup cancelled', 'info');
+    await loadAdminTwofaStatus();
+  } catch (e) {
+    notify('Unable to cancel setup', 'error');
+  }
+}
+
+async function confirmAdminTwofaSetup() {
+  const otp = (document.getElementById('twofaSetupOtp')?.value || '').replace(/\D/g, '');
+  if (!/^\d{6}$/.test(otp)) {
+    notify('Enter a valid 6-digit code', 'error');
+    return;
+  }
+
+  try {
+    const data = await postTwofaAction({ action: 'confirm_setup', otp });
+    if (!data.success) {
+      notify(data.error || 'Unable to enable 2FA', 'error');
+      return;
+    }
+    const setupOtpInput = document.getElementById('twofaSetupOtp');
+    if (setupOtpInput) setupOtpInput.value = '';
+    notify('2FA enabled for admin account', 'success');
+    setAdminTwofaUi({
+      enabled: true,
+      setupPending: false,
+      recoveryRemaining: Number(data.recoveryRemaining || 0),
+      recoveryLastGeneratedAt: data.recoveryLastGeneratedAt || null,
+      recoveryCodes: Array.isArray(data.recoveryCodes) ? data.recoveryCodes : [],
+      secret: '',
+      otpauthUri: '',
+      message: `2FA enabled. Store these backup codes safely. Remaining: ${data.recoveryRemaining ?? 0}.`,
+    });
+  } catch (e) {
+    notify('Unable to enable 2FA', 'error');
+  }
+}
+
+async function regenerateAdminRecoveryCodes() {
+  const otp = (document.getElementById('twofaDisableOtp')?.value || '').replace(/\D/g, '');
+  if (!/^\d{6}$/.test(otp)) {
+    notify('Enter your current 6-digit authenticator code first', 'error');
+    return;
+  }
+
+  try {
+    const data = await postTwofaAction({ action: 'regenerate_recovery', otp });
+    if (!data.success) {
+      notify(data.error || 'Unable to regenerate backup codes', 'error');
+      return;
+    }
+
+    setAdminTwofaUi({
+      enabled: true,
+      setupPending: false,
+      recoveryRemaining: Number(data.recoveryRemaining || 0),
+      recoveryLastGeneratedAt: data.recoveryLastGeneratedAt || null,
+      recoveryCodes: Array.isArray(data.recoveryCodes) ? data.recoveryCodes : [],
+      secret: '',
+      otpauthUri: '',
+      message: 'Backup codes regenerated. Save the new set now; old codes are invalid.',
+    });
+    notify('Backup codes regenerated', 'success');
+  } catch (e) {
+    notify('Unable to regenerate backup codes', 'error');
+  }
+}
+
+async function copyAdminRecoveryCodes() {
+  if (!adminRecoveryCodes.length) {
+    notify('No backup codes to copy', 'warning');
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(adminRecoveryCodes.join('\n'));
+    notify('Backup codes copied to clipboard', 'success');
+  } catch (e) {
+    notify('Clipboard copy failed. Use Download Codes.', 'warning');
+  }
+}
+
+function downloadAdminRecoveryCodes() {
+  if (!adminRecoveryCodes.length) {
+    notify('No backup codes to download', 'warning');
+    return;
+  }
+  const content = `AVM Hostel Admin Recovery Codes\nGenerated: ${new Date().toISOString()}\n\n${adminRecoveryCodes.join('\n')}\n\nEach code can be used once.`;
+  const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'avm-admin-recovery-codes.txt';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+async function disableAdminTwofa() {
+  const otp = (document.getElementById('twofaDisableOtp')?.value || '').replace(/\D/g, '');
+  if (!/^\d{6}$/.test(otp)) {
+    notify('Enter a valid 6-digit code', 'error');
+    return;
+  }
+
+  try {
+    const data = await postTwofaAction({ action: 'disable', otp });
+    if (!data.success) {
+      notify(data.error || 'Unable to disable 2FA', 'error');
+      return;
+    }
+    const disableOtpInput = document.getElementById('twofaDisableOtp');
+    if (disableOtpInput) disableOtpInput.value = '';
+    adminRecoveryCodes = [];
+    notify('2FA disabled for admin account', 'warning');
+    await loadAdminTwofaStatus();
+  } catch (e) {
+    notify('Unable to disable 2FA', 'error');
+  }
 }
 
 function renderAdminStats() {
@@ -1394,6 +1973,35 @@ function renderAdminStats() {
   set('statPendingReqs', requests.length);
   const pendingPayAmt = payments.filter(p=>p.status==='pending').reduce((s,p)=>s+p.amount,0);
   set('statPendingPay', fmtCurrency(pendingPayAmt));
+
+  // Sales-oriented KPIs: aged dues and complaint resolution SLA.
+  const nowTs = Date.now();
+  const msInDay = 24 * 60 * 60 * 1000;
+  const duesAgingAmt = payments
+    .filter(p => p.status === 'pending' && p.date)
+    .filter(p => {
+      const ts = new Date(p.date).getTime();
+      return Number.isFinite(ts) && (nowTs - ts) / msInDay > 30;
+    })
+    .reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+  set('statDuesAging', fmtCurrency(duesAgingAmt));
+
+  const resolvedRequests = HMS.where('requests', r =>
+    (r.status === 'resolved' || r.status === 'approved' || r.status === 'rejected') &&
+    r.date &&
+    r.resolvedAt
+  );
+  let avgResolutionHours = null;
+  if (resolvedRequests.length) {
+    const totalHours = resolvedRequests.reduce((sum, r) => {
+      const created = new Date(r.date).getTime();
+      const resolved = new Date(r.resolvedAt).getTime();
+      if (!Number.isFinite(created) || !Number.isFinite(resolved) || resolved < created) return sum;
+      return sum + ((resolved - created) / (1000 * 60 * 60));
+    }, 0);
+    avgResolutionHours = totalHours / resolvedRequests.length;
+  }
+  set('statComplaintSla', avgResolutionHours === null ? '-' : `${avgResolutionHours.toFixed(1)}h`);
 
   // Update sidebar badge
   const badge = document.getElementById('pendingReqBadge');
@@ -2074,7 +2682,7 @@ function initCharts() {
 
 // ===== RECEPTIONIST DASHBOARD =====
 async function initReceptionistDashboard() {
-  const session = requireAuth('receptionist');
+  const session = await requireAuth('receptionist');
   if (!session) return;
   initSidebarUI();
   await HMS.refreshSessionState();
@@ -2125,6 +2733,24 @@ function renderReceptionistStats() {
         <td><span class="badge ${statusCls}">${a.status}</span></td>
       </tr>`;
     }).join('') : '<tr><td colspan="5" class="text-center text-muted" style="padding:16px">No attendance records today</td></tr>';
+  }
+
+  // Dashboard active visitors widget
+  const activeVisitorsBody = document.getElementById('activeVisitorsBody');
+  if (activeVisitorsBody) {
+    const recentActiveVisitors = [...visitors]
+      .sort((a, b) => (b.checkIn || '').localeCompare(a.checkIn || ''))
+      .slice(0, 5);
+
+    activeVisitorsBody.innerHTML = recentActiveVisitors.length ? recentActiveVisitors.map(v => {
+      const student = HMS.findById('users', v.studentId);
+      return `<tr>
+        <td>${v.name || '-'}</td>
+        <td>${student?.name || '-'}</td>
+        <td style="font-size:12px">${v.checkIn || '—'}</td>
+        <td><button class="btn btn-sm btn-warning" onclick="checkoutVisitor('${v.id}')">Check Out</button></td>
+      </tr>`;
+    }).join('') : '<tr><td colspan="4" class="text-center text-muted" style="padding:12px">No active visitors</td></tr>';
   }
 }
 
@@ -2339,7 +2965,8 @@ function renderAttendanceLog() {
   }).join('');
 }
 
-function quickCheckIn(studentId) {
+async function quickCheckIn(studentId) {
+  await HMS.refreshSessionState();
   const time = new Date().toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' });
   const existing = HMS.where('attendance', a => a.studentId === studentId && a.date === today());
   if (existing.length) {
@@ -2352,31 +2979,33 @@ function quickCheckIn(studentId) {
   renderStudentsList(); renderReceptionistStats(); renderAttendanceLog();
 }
 
-function markOut(studentId) {
+async function markOut(studentId) {
+  await HMS.refreshSessionState();
   const time = new Date().toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' });
   const existing = HMS.where('attendance', a => a.studentId === studentId && a.date === today());
   if (existing.length) HMS.update('attendance', existing[0].id, { status:'out', checkOut: time });
   const student = HMS.findById('users', studentId);
   notify(`${student?.name} marked as out at ${time}`, 'info');
-  renderStudentsList(); renderReceptionistStats();
+  renderStudentsList(); renderReceptionistStats(); renderAttendanceLog();
 }
 
-function handleCheckIn(e) {
+async function handleCheckIn(e) {
   e.preventDefault();
   const studentId = document.getElementById('ciStudentId').value;
   const student = HMS.where('users', u => (u.studentId === studentId || u.id === studentId) && u.role === 'student')[0];
   if (!student) { notify('Student not found. Check the ID.', 'error'); return; }
-  quickCheckIn(student.id);
+  await quickCheckIn(student.id);
   closeModal('checkInModal');
   e.target.reset();
 }
 
-function handleCheckOut(e) {
+async function handleCheckOut(e) {
   e.preventDefault();
   const studentId = document.getElementById('coStudentId').value;
   const reason = document.getElementById('coReason').value;
   const student = HMS.where('users', u => (u.studentId === studentId || u.id === studentId) && u.role === 'student')[0];
   if (!student) { notify('Student not found. Check the ID.', 'error'); return; }
+  await HMS.refreshSessionState();
   const time = new Date().toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' });
   const existing = HMS.where('attendance', a => a.studentId === student.id && a.date === today());
   const status = reason === 'on-pass' ? 'out-pass' : 'out';
@@ -2388,8 +3017,9 @@ function handleCheckOut(e) {
   renderStudentsList(); renderReceptionistStats(); renderAttendanceLog();
 }
 
-function registerVisitor(e) {
+async function registerVisitor(e) {
   e.preventDefault();
+  await HMS.refreshSessionState();
   const studentId = document.getElementById('visitorForStudent').value;
   const student = HMS.findById('users', studentId);
   const checkInTime = new Date().toLocaleString('en-IN', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
@@ -2408,7 +3038,8 @@ function registerVisitor(e) {
   renderVisitorsList(); renderReceptionistStats();
 }
 
-function checkoutVisitor(id) {
+async function checkoutVisitor(id) {
+  await HMS.refreshSessionState();
   const time = new Date().toLocaleString('en-IN', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
   HMS.update('visitors', id, { status:'checked-out', checkOut: time });
   notify('Visitor checked out', 'success');
@@ -2431,6 +3062,7 @@ function setInput(id, val) { const el = document.getElementById(id); if (el) el.
 // Password toggle for login
 document.addEventListener('DOMContentLoaded', () => {
   HMS.init();
+  setLoginMode(false);
   const loginForm = document.getElementById('loginForm');
   if (loginForm) loginForm.addEventListener('submit', handleLogin);
 });
