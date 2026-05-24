@@ -182,20 +182,22 @@ const HMS = {
   set(key, data) { localStorage.setItem(this.KEYS[key], JSON.stringify(data)); },
   add(key, item) {
     const d = this.get(key);
-    const safeItem = sanitizePayloadDeep(item);
-    d.push(safeItem);
+    const persistItem = sanitizePayloadDeep(item);
+    const safeLocalItem = stripSensitiveFieldsDeep(persistItem);
+    d.push(safeLocalItem);
     this.set(key, d);
-    this.persist(key, 'add', safeItem);
-    return safeItem;
+    this.persist(key, 'add', persistItem);
+    return safeLocalItem;
   },
   update(key, id, updates) {
     const d = this.get(key);
     const i = d.findIndex(x => x.id === id);
     if (i !== -1) {
-      const safeUpdates = sanitizePayloadDeep(updates);
-      d[i] = { ...d[i], ...safeUpdates };
+      const persistUpdates = sanitizePayloadDeep(updates);
+      const safeLocalUpdates = stripSensitiveFieldsDeep(persistUpdates);
+      d[i] = { ...d[i], ...safeLocalUpdates };
       this.set(key, d);
-      this.persist(key, 'update', d[i]);
+      this.persist(key, 'update', { id, ...persistUpdates });
       return d[i];
     }
     return null;
@@ -486,6 +488,22 @@ function sanitizePayloadDeep(value) {
   }
   if (typeof value === 'string') {
     return sanitizeText(value);
+  }
+  return value;
+}
+
+function stripSensitiveFieldsDeep(value) {
+  if (Array.isArray(value)) {
+    return value.map(stripSensitiveFieldsDeep);
+  }
+  if (value && typeof value === 'object') {
+    const out = {};
+    Object.keys(value).forEach(k => {
+      const key = String(k).toLowerCase();
+      if (key === 'password' || key === 'password_hash') return;
+      out[k] = stripSensitiveFieldsDeep(value[k]);
+    });
+    return out;
   }
   return value;
 }
@@ -784,15 +802,21 @@ function printReceipt(paymentId) {
   const p = HMS.findById('payments', paymentId);
   if (!p) return;
   const student = HMS.findById('users', p.studentId);
+  const safeTxnId = escHtml(p.txnId || '-');
+  const safeDate = escHtml(fmtDate(p.date));
+  const safeStudent = escHtml(student?.name || '-');
+  const safeType = escHtml(p.type || '-');
+  const safeMethod = escHtml(p.method || '-');
+  const safeAmount = escHtml(fmtCurrency(p.amount));
   const w = window.open('', '_blank');
   w.document.head.innerHTML = `<title>Receipt</title><style>body{font-family:Arial;padding:40px;max-width:500px;margin:0 auto}h2{color:#4338ca}.amount{font-size:24px;font-weight:700;color:#10b981}p{margin:8px 0}hr{border:none;border-top:1px solid #eee;margin:16px 0}</style>`;
   w.document.body.innerHTML = `<h2>Hostel Pro - Payment Receipt</h2><hr>
-    <p><strong>Transaction ID:</strong> ${p.txnId}</p>
-    <p><strong>Date:</strong> ${fmtDate(p.date)}</p>
-    <p><strong>Student:</strong> ${student?.name}</p>
-    <p><strong>Payment Type:</strong> ${p.type}</p>
-    <p><strong>Method:</strong> ${p.method}</p>
-    <p class="amount">Amount: ${fmtCurrency(p.amount)}</p>
+    <p><strong>Transaction ID:</strong> ${safeTxnId}</p>
+    <p><strong>Date:</strong> ${safeDate}</p>
+    <p><strong>Student:</strong> ${safeStudent}</p>
+    <p><strong>Payment Type:</strong> ${safeType}</p>
+    <p><strong>Method:</strong> ${safeMethod}</p>
+    <p class="amount">Amount: ${safeAmount}</p>
     <p><strong>Status:</strong> PAID</p><hr>
     <p style="font-size:12px;color:#666">This is a computer-generated receipt. No signature required.</p>`;
   w.print();
