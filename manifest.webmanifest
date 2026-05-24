@@ -1,0 +1,20 @@
+{
+  "name": "AVM Hostel Management System",
+  "short_name": "AVM Hostel",
+  "start_url": "login.html",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#4338ca",
+  "icons": [
+    {
+      "src": "logo.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
