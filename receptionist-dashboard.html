@@ -257,7 +257,7 @@
             <div class="card-body" style="padding:0">
               <div class="table-wrapper">
                 <table>
-                  <thead><tr><th>Student</th><th>Type</th><th>Action</th></tr></thead>
+                  <thead><tr><th>Student</th><th>Type</th><th class="action-col">Action</th></tr></thead>
                   <tbody id="dashPendingRequestsBody"></tbody>
                 </table>
               </div>
@@ -270,7 +270,7 @@
             <div class="card-body" style="padding:0">
               <div class="table-wrapper">
                 <table>
-                  <thead><tr><th>Visitor</th><th>For Student</th><th>Time In</th><th>Action</th></tr></thead>
+                  <thead><tr><th>Visitor</th><th>For Student</th><th>Time In</th><th class="action-col">Action</th></tr></thead>
                   <tbody id="activeVisitorsBody"></tbody>
                 </table>
               </div>
@@ -281,7 +281,7 @@
             <div class="card-body" style="padding:0">
               <div class="table-wrapper">
                 <table>
-                  <thead><tr><th>Student</th><th>Reason</th><th>Expected Return</th><th>Action</th></tr></thead>
+                  <thead><tr><th>Student</th><th>Reason</th><th>Expected Return</th><th class="action-col">Action</th></tr></thead>
                   <tbody id="dashOutpassBody"></tbody>
                 </table>
               </div>
@@ -377,7 +377,7 @@
                   <th class="sortable-th" id="rath-checkIn" onclick="sortRecAttendance('checkIn')">Check-In <span class="sort-icon">↕</span></th>
                   <th>Check-Out</th>
                   <th class="sortable-th" id="rath-status" onclick="sortRecAttendance('status')">Status <span class="sort-icon">↕</span></th>
-                  <th>Actions</th>
+                  <th class="action-col">Actions</th>
                 </tr></thead>
                 <tbody id="fullAttendanceBody"></tbody>
               </table>
@@ -429,7 +429,7 @@
                   <th class="sortable-th sort-active" id="rvth-date" onclick="sortRecVisitors('date')">Check-In <span class="sort-icon">↓</span></th>
                   <th>Check-Out</th>
                   <th class="sortable-th" id="rvth-status" onclick="sortRecVisitors('status')">Status <span class="sort-icon">↕</span></th>
-                  <th>Action</th>
+                  <th class="action-col">Action</th>
                 </tr></thead>
                 <tbody id="visitorsBody"></tbody>
               </table>
@@ -468,7 +468,7 @@
                   <th class="sortable-th" id="rsth-id" onclick="sortRecStudents('id')">ID <span class="sort-icon">↕</span></th>
                   <th class="sortable-th sort-active" id="rsth-name" onclick="sortRecStudents('name')">Name <span class="sort-icon">↑</span></th>
                   <th class="sortable-th" id="rsth-room" onclick="sortRecStudents('room')">Room <span class="sort-icon">↕</span></th>
-                  <th>Phone</th><th>Course</th><th>Payment</th><th>Today</th><th>Actions</th>
+                  <th>Phone</th><th>Course</th><th>Payment</th><th>Today</th><th class="action-col">Actions</th>
                 </tr></thead>
                 <tbody id="studentsListBody"></tbody>
               </table>
@@ -561,7 +561,7 @@
           <div class="card-body" style="padding:0">
             <div class="table-wrapper">
               <table id="outpassTable">
-                <thead><tr><th>Pass #</th><th>Student</th><th>Room</th><th>Reason</th><th>Issued</th><th>Expected Return</th><th>Status</th><th>Action</th></tr></thead>
+                <thead><tr><th>Pass #</th><th>Student</th><th>Room</th><th>Reason</th><th>Issued</th><th>Expected Return</th><th>Status</th><th class="action-col">Action</th></tr></thead>
                 <tbody id="outpassBody"></tbody>
               </table>
             </div>
@@ -587,7 +587,7 @@
           <div class="card-body" style="padding:0">
             <div class="table-wrapper">
               <table>
-                <thead><tr><th>ID</th><th>Student</th><th>Type</th><th>Description</th><th>Date</th><th>Status</th><th>Actions</th></tr></thead>
+                <thead><tr><th>ID</th><th>Student</th><th>Type</th><th>Description</th><th>Date</th><th>Status</th><th class="action-col">Actions</th></tr></thead>
                 <tbody id="recRequestsBody"></tbody>
               </table>
             </div>
