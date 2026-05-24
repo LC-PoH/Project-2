@@ -3,6 +3,7 @@
 // ==========================================
 
 const DATA_VERSION = 'v2.0';
+// Asset loading uses versioned CSS/JS URLs in HTML files.
 
 // ===== THEME MANAGEMENT =====
 function initTheme() {
@@ -38,20 +39,20 @@ const HMS = {
   defaults: {
     users: [
       // Staff
-      { id:'u1', username:'admin', password:'admin123', role:'admin', name:'Rajesh Kumar', email:'admin@hostelpro.com', phone:'9876543210' },
-      { id:'u3', username:'reception', password:'rec123', role:'receptionist', name:'Priya Patel', email:'priya@hostelpro.com', phone:'9876543213' },
+      { id:'u1', username:'admin', role:'admin', name:'Rajesh Kumar', email:'admin@hostelpro.com', phone:'9876543210' },
+      { id:'u3', username:'reception', role:'receptionist', name:'Priya Patel', email:'priya@hostelpro.com', phone:'9876543213' },
       // Students
-      { id:'u2',  username:'student123', password:'pass123',  role:'student', name:'Arjun Sharma',   email:'arjun@student.com',   phone:'9811001001', studentId:'STU001', roomId:'r1', bloodGroup:'O+',  emergencyContact:'9811001002', course:'B.Tech CSE',  year:'2nd Year', fatherName:'Ramesh Sharma',  address:'12 Rajouri Garden, Delhi' },
-      { id:'u4',  username:'rahul456',   password:'rahul123',  role:'student', name:'Rahul Verma',    email:'rahul@student.com',   phone:'9811002001', studentId:'STU002', roomId:'r2', bloodGroup:'A+',  emergencyContact:'9811002002', course:'B.Tech ECE',  year:'3rd Year', fatherName:'Suresh Verma',   address:'45 Andheri West, Mumbai' },
-      { id:'u5',  username:'sneha789',   password:'sneha123',  role:'student', name:'Sneha Singh',    email:'sneha@student.com',   phone:'9811003001', studentId:'STU003', roomId:'r3', bloodGroup:'B+',  emergencyContact:'9811003002', course:'MCA',         year:'1st Year', fatherName:'Deepak Singh',   address:'78 Whitefield, Bangalore' },
-      { id:'u6',  username:'priya.k',    password:'priya123',  role:'student', name:'Priya Kapoor',   email:'priya.k@student.com', phone:'9811004001', studentId:'STU004', roomId:'r2', bloodGroup:'AB+', emergencyContact:'9811004002', course:'B.Sc IT',     year:'2nd Year', fatherName:'Rakesh Kapoor',  address:'22 Salt Lake, Kolkata' },
-      { id:'u7',  username:'ankit.y',    password:'ankit123',  role:'student', name:'Ankit Yadav',    email:'ankit.y@student.com', phone:'9811005001', studentId:'STU005', roomId:'r3', bloodGroup:'O-',  emergencyContact:'9811005002', course:'B.Tech ME',   year:'4th Year', fatherName:'Ramkesh Yadav',  address:'33 Civil Lines, Allahabad' },
-      { id:'u8',  username:'kavya.r',    password:'kavya123',  role:'student', name:'Kavya Reddy',    email:'kavya.r@student.com', phone:'9811006001', studentId:'STU006', roomId:'r3', bloodGroup:'B-',  emergencyContact:'9811006002', course:'MBA',         year:'1st Year', fatherName:'Venkat Reddy',   address:'56 Banjara Hills, Hyderabad' },
-      { id:'u9',  username:'rohit.m',    password:'rohit123',  role:'student', name:'Rohit Mehta',    email:'rohit.m@student.com', phone:'9811007001', studentId:'STU007', roomId:'r4', bloodGroup:'A-',  emergencyContact:'9811007002', course:'B.Tech Civil',year:'3rd Year', fatherName:'Anil Mehta',     address:'67 Navrangpura, Ahmedabad' },
-      { id:'u10', username:'pooja.g',    password:'pooja123',  role:'student', name:'Pooja Gupta',    email:'pooja.g@student.com', phone:'9811008001', studentId:'STU008', roomId:'r4', bloodGroup:'AB-', emergencyContact:'9811008002', course:'BCA',         year:'2nd Year', fatherName:'Sanjay Gupta',   address:'89 Hazratganj, Lucknow' },
-      { id:'u11', username:'sanjay.j',   password:'sanjay123', role:'student', name:'Sanjay Joshi',   email:'sanjay.j@student.com',phone:'9811009001', studentId:'STU009', roomId:'r5', bloodGroup:'O+',  emergencyContact:'9811009002', course:'M.Tech CSE',  year:'1st Year', fatherName:'Mohan Joshi',    address:'101 Koregaon Park, Pune' },
-      { id:'u12', username:'meera.k',    password:'meera123',  role:'student', name:'Meera Krishnan', email:'meera.k@student.com', phone:'9811010001', studentId:'STU010', roomId:'r6', bloodGroup:'B+',  emergencyContact:'9811010002', course:'BBA',         year:'3rd Year', fatherName:'Krishnan Pillai',address:'14 T Nagar, Chennai' },
-      { id:'u13', username:'aditya.p',   password:'aditya123', role:'student', name:'Aditya Patil',   email:'aditya.p@student.com',phone:'9811011001', studentId:'STU011', roomId:'r6', bloodGroup:'A+',  emergencyContact:'9811011002', course:'B.Tech CSE',  year:'2nd Year', fatherName:'Ramesh Patil',   address:'55 FC Road, Pune' },
+      { id:'u2',  username:'student123', role:'student', name:'Arjun Sharma',   email:'arjun@student.com',   phone:'9811001001', studentId:'STU001', roomId:'r1', bloodGroup:'O+',  emergencyContact:'9811001002', course:'B.Tech CSE',  year:'2nd Year', fatherName:'Ramesh Sharma',  address:'12 Rajouri Garden, Delhi' },
+      { id:'u4',  username:'rahul456',   role:'student', name:'Rahul Verma',    email:'rahul@student.com',   phone:'9811002001', studentId:'STU002', roomId:'r2', bloodGroup:'A+',  emergencyContact:'9811002002', course:'B.Tech ECE',  year:'3rd Year', fatherName:'Suresh Verma',   address:'45 Andheri West, Mumbai' },
+      { id:'u5',  username:'sneha789',   role:'student', name:'Sneha Singh',    email:'sneha@student.com',   phone:'9811003001', studentId:'STU003', roomId:'r3', bloodGroup:'B+',  emergencyContact:'9811003002', course:'MCA',         year:'1st Year', fatherName:'Deepak Singh',   address:'78 Whitefield, Bangalore' },
+      { id:'u6',  username:'priya.k',    role:'student', name:'Priya Kapoor',   email:'priya.k@student.com', phone:'9811004001', studentId:'STU004', roomId:'r2', bloodGroup:'AB+', emergencyContact:'9811004002', course:'B.Sc IT',     year:'2nd Year', fatherName:'Rakesh Kapoor',  address:'22 Salt Lake, Kolkata' },
+      { id:'u7',  username:'ankit.y',    role:'student', name:'Ankit Yadav',    email:'ankit.y@student.com', phone:'9811005001', studentId:'STU005', roomId:'r3', bloodGroup:'O-',  emergencyContact:'9811005002', course:'B.Tech ME',   year:'4th Year', fatherName:'Ramkesh Yadav',  address:'33 Civil Lines, Allahabad' },
+      { id:'u8',  username:'kavya.r',    role:'student', name:'Kavya Reddy',    email:'kavya.r@student.com', phone:'9811006001', studentId:'STU006', roomId:'r3', bloodGroup:'B-',  emergencyContact:'9811006002', course:'MBA',         year:'1st Year', fatherName:'Venkat Reddy',   address:'56 Banjara Hills, Hyderabad' },
+      { id:'u9',  username:'rohit.m',    role:'student', name:'Rohit Mehta',    email:'rohit.m@student.com', phone:'9811007001', studentId:'STU007', roomId:'r4', bloodGroup:'A-',  emergencyContact:'9811007002', course:'B.Tech Civil',year:'3rd Year', fatherName:'Anil Mehta',     address:'67 Navrangpura, Ahmedabad' },
+      { id:'u10', username:'pooja.g',    role:'student', name:'Pooja Gupta',    email:'pooja.g@student.com', phone:'9811008001', studentId:'STU008', roomId:'r4', bloodGroup:'AB-', emergencyContact:'9811008002', course:'BCA',         year:'2nd Year', fatherName:'Sanjay Gupta',   address:'89 Hazratganj, Lucknow' },
+      { id:'u11', username:'sanjay.j',   role:'student', name:'Sanjay Joshi',   email:'sanjay.j@student.com',phone:'9811009001', studentId:'STU009', roomId:'r5', bloodGroup:'O+',  emergencyContact:'9811009002', course:'M.Tech CSE',  year:'1st Year', fatherName:'Mohan Joshi',    address:'101 Koregaon Park, Pune' },
+      { id:'u12', username:'meera.k',    role:'student', name:'Meera Krishnan', email:'meera.k@student.com', phone:'9811010001', studentId:'STU010', roomId:'r6', bloodGroup:'B+',  emergencyContact:'9811010002', course:'BBA',         year:'3rd Year', fatherName:'Krishnan Pillai',address:'14 T Nagar, Chennai' },
+      { id:'u13', username:'aditya.p',   role:'student', name:'Aditya Patil',   email:'aditya.p@student.com',phone:'9811011001', studentId:'STU011', roomId:'r6', bloodGroup:'A+',  emergencyContact:'9811011002', course:'B.Tech CSE',  year:'2nd Year', fatherName:'Ramesh Patil',   address:'55 FC Road, Pune' },
     ],
     rooms: [
       { id:'r1', number:'A-101', floor:'Ground Floor', type:'Single', beds:1, occupied:1, bathrooms:'Shared',   rent:5000, status:'occupied',  amenities:['AC','WiFi','Study Table','Wardrobe'] },
@@ -145,13 +146,13 @@ const HMS = {
 
   async syncFromDB() {
     try {
-      const res = await fetch('api/sync.php');
+      const res = await fetch('api/sync.php', { credentials: 'same-origin' });
       if (!res.ok) return false;
       const result = await res.json();
       if (result.success && result.data) {
         // Always overwrite localStorage with DB data (even empty arrays)
         Object.entries(result.data).forEach(([k, v]) => {
-          localStorage.setItem(this.KEYS[k], JSON.stringify(v ?? []));
+          localStorage.setItem(this.KEYS[k], JSON.stringify(sanitizePayloadDeep(v ?? [])));
         });
         return true;
       }
@@ -161,21 +162,42 @@ const HMS = {
 
   async persist(table, action, data) {
     try {
-      await fetch('api/data.php', {
+      const res = await fetch('api/data.php', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': this.getCsrfToken() || '',
+        },
         body: JSON.stringify({ table, action, data }),
       });
+      if (!res.ok) {
+        const result = await res.json().catch(() => ({}));
+        notify(result.error || 'Server rejected this change', 'error');
+      }
     } catch (e) { /* offline – already saved to localStorage */ }
   },
 
   get(key) { return JSON.parse(localStorage.getItem(this.KEYS[key]) || '[]'); },
   set(key, data) { localStorage.setItem(this.KEYS[key], JSON.stringify(data)); },
-  add(key, item) { const d = this.get(key); d.push(item); this.set(key, d); this.persist(key, 'add', item); return item; },
+  add(key, item) {
+    const d = this.get(key);
+    const safeItem = sanitizePayloadDeep(item);
+    d.push(safeItem);
+    this.set(key, d);
+    this.persist(key, 'add', safeItem);
+    return safeItem;
+  },
   update(key, id, updates) {
     const d = this.get(key);
     const i = d.findIndex(x => x.id === id);
-    if (i !== -1) { d[i] = { ...d[i], ...updates }; this.set(key, d); this.persist(key, 'update', d[i]); return d[i]; }
+    if (i !== -1) {
+      const safeUpdates = sanitizePayloadDeep(updates);
+      d[i] = { ...d[i], ...safeUpdates };
+      this.set(key, d);
+      this.persist(key, 'update', d[i]);
+      return d[i];
+    }
     return null;
   },
   remove(key, id) { this.set(key, this.get(key).filter(x => x.id !== id)); this.persist(key, 'remove', { id }); },
@@ -195,12 +217,20 @@ const HMS = {
 
   getSession() { return JSON.parse(sessionStorage.getItem('hms_session') || 'null'); },
   setSession(data) { sessionStorage.setItem('hms_session', JSON.stringify(data)); },
-  clearSession() { sessionStorage.removeItem('hms_session'); },
+  getCsrfToken() { return sessionStorage.getItem('hms_csrf') || ''; },
+  setCsrfToken(token) { sessionStorage.setItem('hms_csrf', token || ''); },
+  clearSession() { sessionStorage.removeItem('hms_session'); sessionStorage.removeItem('hms_csrf'); },
 };
 
 // ===== AUTH =====
+let loginInFlight = false;
+
 async function handleLogin(e) {
   e.preventDefault();
+  if (loginInFlight) {
+    return;
+  }
+
   const role = document.getElementById('role').value;
   const username = document.getElementById('username').value.trim();
   const password = document.getElementById('password').value;
@@ -208,6 +238,7 @@ async function handleLogin(e) {
 
   if (!username || !password) { notify('Please fill in all fields', 'error'); return; }
 
+  loginInFlight = true;
   btn.textContent = 'Signing in…';
   btn.disabled = true;
 
@@ -216,30 +247,25 @@ async function handleLogin(e) {
   try {
     const res = await fetch('api/login.php', {
       method: 'POST',
+      credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password, role }),
     });
     const data = await res.json();
     if (data.success) {
       HMS.setSession({ userId: data.user.id, role: data.user.role, name: data.user.name });
+      HMS.setCsrfToken(data.csrfToken || '');
       window.location.href = routes[data.user.role];
       return;
     }
     notify(data.error || 'Invalid credentials. Please check and try again.', 'error');
   } catch (err) {
-    // PHP unavailable – fall back to localStorage demo mode
-    const users = HMS.get('users');
-    const user = users.find(u => u.username === username && u.password === password && u.role === role);
-    if (user) {
-      HMS.setSession({ userId: user.id, role: user.role, name: user.name });
-      window.location.href = routes[user.role];
-      return;
-    }
-    notify('Invalid credentials. Please check and try again.', 'error');
+    notify('Login server unavailable. Please try again shortly.', 'error');
   }
 
   btn.textContent = 'Sign In';
   btn.disabled = false;
+  loginInFlight = false;
 }
 
 function fillCred(username, password, role) {
@@ -324,8 +350,14 @@ function logout() {
 }
 
 function confirmLogout() {
-  HMS.clearSession();
-  window.location.href = 'login.html';
+  fetch('api/logout.php', {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'X-CSRF-Token': HMS.getCsrfToken() || '' },
+  }).finally(() => {
+    HMS.clearSession();
+    window.location.href = 'login.html';
+  });
 }
 
 function requireAuth(requiredRole) {
@@ -344,6 +376,11 @@ function showPage(pageId) {
   if (page) page.classList.add('active');
   document.querySelectorAll(`[data-page="${pageId}"]`).forEach(n => n.classList.add('active'));
   document.getElementById('pageTitle').textContent = document.querySelector(`[data-page="${pageId}"]`)?.dataset.title || 'Dashboard';
+  if (pageId === 'audit-logs' && adminAuditState.autoRefresh && !adminAuditState.refreshTimer) {
+    const toggle = document.getElementById('auditAutoRefreshToggle');
+    if (toggle) toggle.checked = true;
+    toggleAuditAutoRefresh();
+  }
   if (window.innerWidth <= 768) closeMobileSidebar();
 }
 
@@ -398,15 +435,61 @@ function notify(msg, type = 'info', title = '') {
   n.className = `notification ${type === 'error' ? 'error' : type}`;
   n.innerHTML = `<div class="notification-icon">${icons[type] || icons.info}</div>
     <div class="notification-body">
-      <div class="notification-title">${title || titles[type]}</div>
-      <div class="notification-msg">${msg}</div>
+      <div class="notification-title"></div>
+      <div class="notification-msg"></div>
     </div>
     <button class="notification-close" onclick="this.parentElement.remove()"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>`;
+  const titleEl = n.querySelector('.notification-title');
+  const msgEl = n.querySelector('.notification-msg');
+  if (titleEl) titleEl.textContent = sanitizeText(title || titles[type]);
+  if (msgEl) msgEl.textContent = sanitizeText(msg);
   container.appendChild(n);
   setTimeout(() => { n.classList.add('hide'); setTimeout(() => n.remove(), 300); }, 4000);
 }
 
 // ===== UTILITIES =====
+function sanitizeText(value) {
+  return String(value ?? '').replace(/[<>"'`]/g, '').trim();
+}
+
+function escHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function escAttr(value) {
+  return escHtml(value).replace(/`/g, '&#96;');
+}
+
+function escJs(value) {
+  return String(value ?? '')
+    .replace(/\\/g, '\\\\')
+    .replace(/'/g, "\\'")
+    .replace(/\"/g, '\\"')
+    .replace(/[\r\n]/g, '');
+}
+
+function sanitizePayloadDeep(value) {
+  if (Array.isArray(value)) {
+    return value.map(sanitizePayloadDeep);
+  }
+  if (value && typeof value === 'object') {
+    const out = {};
+    Object.keys(value).forEach(k => {
+      out[k] = sanitizePayloadDeep(value[k]);
+    });
+    return out;
+  }
+  if (typeof value === 'string') {
+    return sanitizeText(value);
+  }
+  return value;
+}
+
 function fmtCurrency(n) { return '₹' + Number(n).toLocaleString('en-IN'); }
 function fmtDate(d) { return d ? new Date(d).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }) : '-'; }
 function fmtDateTime(d) { return d ? new Date(d).toLocaleString('en-IN', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' }) : '-'; }
@@ -560,10 +643,10 @@ function renderStudentRequests(student) {
     return rd === 'asc' ? (a.date||'').localeCompare(b.date||'') : (b.date||'').localeCompare(a.date||'');
   });
   tbody.innerHTML = sorted.length ? sorted.map(r =>
-    `<tr><td>${r.id}</td><td><span class="badge badge-info">${r.type}</span></td>
-     <td>${r.description}</td><td>${fmtDate(r.date)}</td>
-     <td><span class="badge ${r.status==='resolved'||r.status==='approved'?'badge-success':r.status==='rejected'?'badge-danger':'badge-warning'}">${r.status}</span></td>
-     <td>${r.response || '—'}</td></tr>`
+    `<tr><td>${escHtml(r.id)}</td><td><span class="badge badge-info">${escHtml(r.type)}</span></td>
+     <td>${escHtml(r.description)}</td><td>${escHtml(fmtDate(r.date))}</td>
+     <td><span class="badge ${r.status==='resolved'||r.status==='approved'?'badge-success':r.status==='rejected'?'badge-danger':'badge-warning'}">${escHtml(r.status)}</span></td>
+     <td>${escHtml(r.response || '—')}</td></tr>`
   ).join('') : '<tr><td colspan="6" class="text-center text-muted" style="padding:24px">No requests submitted</td></tr>';
 }
 
@@ -614,30 +697,36 @@ function submitPayment(e) {
   const amount = Number(document.getElementById('payAmount').value);
   if (!method || !amount) { notify('Please fill in all payment details', 'warning'); return; }
 
-  const pending = HMS.where('payments', p => p.studentId === session.userId && p.status === 'pending');
-  const txnId = 'TXN' + Date.now();
+  const idempotencyKey = (typeof crypto !== 'undefined' && crypto.randomUUID)
+    ? crypto.randomUUID()
+    : `pay-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
-  if (pending.length) {
-    const pendingAmt = Number(pending[0].amount);
-    if (amount >= pendingAmt) {
-      // Paying full amount or more — mark the pending record as paid with the actual due amount
-      HMS.update('payments', pending[0].id, { amount: pendingAmt, method, status: 'paid', txnId });
-    } else {
-      // Partial payment — create a new paid record for the amount entered,
-      // and reduce the pending balance by that amount
-      HMS.add('payments', { id: HMS.genPaymentId(), bookingId: pending[0].bookingId, studentId: session.userId, amount, method, date: today(), status: 'paid', type: pending[0].type || 'Monthly Rent', txnId });
-      HMS.update('payments', pending[0].id, { amount: pendingAmt - amount });
-    }
-  } else {
-    // No pending record — just log a new paid payment
-    HMS.add('payments', { id: HMS.genPaymentId(), bookingId: '', studentId: session.userId, amount, method, date: today(), status: 'paid', type: 'Monthly Rent', txnId });
-  }
+  fetch('api/payments.php', {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRF-Token': HMS.getCsrfToken() || '',
+    },
+    body: JSON.stringify({ method, amount, idempotencyKey }),
+  })
+    .then(r => r.json())
+    .then(async data => {
+      if (!data.success) {
+        notify(data.error || 'Payment failed', 'error');
+        return;
+      }
 
-  notify(`Payment of ${fmtCurrency(amount)} made successfully via ${method}!`, 'success');
-  closeModal('paymentModal');
-  e.target.reset();
-  renderStudentPayments(HMS.findById('users', session.userId));
-  renderStudentDashboard(HMS.findById('users', session.userId));
+      await HMS.syncFromDB();
+      notify(`Payment of ${fmtCurrency(data.paidAmount || amount)} submitted successfully.`, 'success');
+      closeModal('paymentModal');
+      e.target.reset();
+      renderStudentPayments(HMS.findById('users', session.userId));
+      renderStudentDashboard(HMS.findById('users', session.userId));
+    })
+    .catch(() => {
+      notify('Payment service unavailable. Please try again.', 'error');
+    });
 }
 
 function updateProfile(e) {
@@ -664,27 +753,29 @@ function updateProfile(e) {
 async function changePassword(e) {
   e.preventDefault();
   const session = HMS.getSession();
-  const user = HMS.findById('users', session.userId);
   const old = document.getElementById('oldPass').value;
   const np  = document.getElementById('newPass').value;
   const cp  = document.getElementById('confirmPass').value;
-  if (np.length < 6) { notify('New password must be at least 6 characters', 'warning'); return; }
+  if (np.length < 10) { notify('New password must be at least 10 characters', 'warning'); return; }
   if (np !== cp) { notify('New passwords do not match', 'error'); return; }
 
   try {
     const res = await fetch('api/change-password.php', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId: session.userId, oldPassword: old, newPassword: np }),
+      credentials: 'same-origin',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': HMS.getCsrfToken() || '',
+      },
+      body: JSON.stringify({ oldPassword: old, newPassword: np }),
     });
     const data = await res.json();
     if (!data.success) { notify(data.error || 'Current password is incorrect', 'error'); return; }
   } catch (err) {
-    // Offline fallback: verify against localStorage plaintext
-    if (user.password && user.password !== old) { notify('Current password is incorrect', 'error'); return; }
+    notify('Password service unavailable. Please try again.', 'error');
+    return;
   }
 
-  HMS.update('users', session.userId, { password: np });
   notify('Password changed successfully', 'success');
   e.target.reset();
 }
@@ -713,10 +804,10 @@ function renderNotices() {
   const containers = document.querySelectorAll('.notices-list');
   if (!containers.length) return;
   const html = notices.length ? [...notices].reverse().map(n =>
-    `<div class="notice-item ${n.type}">
-      <div class="notice-title">${n.title}</div>
-      <div class="notice-body">${n.body}</div>
-      <div class="notice-meta">Posted by ${n.author} · ${fmtDate(n.date)}</div>
+    `<div class="notice-item ${escAttr(n.type)}">
+      <div class="notice-title">${escHtml(n.title)}</div>
+      <div class="notice-body">${escHtml(n.body)}</div>
+      <div class="notice-meta">Posted by ${escHtml(n.author)} · ${escHtml(fmtDate(n.date))}</div>
     </div>`
   ).join('') : '<p class="text-muted text-sm">No notices posted</p>';
   containers.forEach(c => c.innerHTML = html);
@@ -739,6 +830,285 @@ const stuSortState = {
   payments: { col: 'date', dir: 'desc' },
   requests: { col: 'date', dir: 'desc' }
 };
+
+const adminAuditState = {
+  page: 1,
+  pageSize: 20,
+  totalPages: 1,
+  total: 0,
+  logs: [],
+  action: '',
+  status: '',
+  actorRole: '',
+  q: '',
+  dateFrom: '',
+  dateTo: '',
+  includeSystem: false,
+  autoRefresh: false,
+  refreshTimer: null,
+  lastRefreshAt: '',
+};
+
+function isAuditPageVisible() {
+  return !!document.getElementById('audit-logs')?.classList.contains('active');
+}
+
+function getAuditRisk(log) {
+  const action = String(log?.action_name || '');
+  const status = String(log?.status || '');
+  const details = String(log?.details || '').toLowerCase();
+
+  if (status === 'failed' && action === 'login') return { level: 'high', score: 90 };
+  if (status === 'failed' && action === 'payment_submit') return { level: 'high', score: 85 };
+  if (action === 'data_remove') return { level: 'high', score: 80 };
+  if (status === 'failed') return { level: 'medium', score: 60 };
+  if (action === 'password_change') return { level: 'medium', score: 55 };
+  if (details.includes('forbidden') || details.includes('invalid')) return { level: 'medium', score: 50 };
+  return { level: 'low', score: 20 };
+}
+
+function riskBadge(level) {
+  if (level === 'high') return '<span class="badge badge-danger">high</span>';
+  if (level === 'medium') return '<span class="badge badge-warning">medium</span>';
+  return '<span class="badge badge-success">low</span>';
+}
+
+function auditActionLabel(action) {
+  const map = {
+    login: 'Login',
+    logout: 'Logout',
+    data_add: 'Data Add',
+    data_update: 'Data Update',
+    data_remove: 'Data Remove',
+    password_change: 'Password Change',
+    payment_submit: 'Payment Submit',
+  };
+  return map[action] || String(action || '-').replace(/_/g, ' ');
+}
+
+function displayIp(ip) {
+  const value = String(ip || '').trim();
+  if (!value) return '-';
+  if (value === '::1' || value === '127.0.0.1') return 'Localhost';
+  return value;
+}
+
+function toggleAuditAutoRefresh() {
+  const enabled = !!document.getElementById('auditAutoRefreshToggle')?.checked;
+  adminAuditState.autoRefresh = enabled;
+
+  if (adminAuditState.refreshTimer) {
+    clearInterval(adminAuditState.refreshTimer);
+    adminAuditState.refreshTimer = null;
+  }
+
+  if (enabled) {
+    notify('Audit auto refresh enabled (15s)', 'info');
+    adminAuditState.refreshTimer = setInterval(() => {
+      if (!adminAuditState.autoRefresh) return;
+      if (document.hidden) return;
+      if (!isAuditPageVisible()) return;
+      renderAuditLogs(adminAuditState.page);
+    }, 15000);
+  } else {
+    notify('Audit auto refresh disabled', 'info');
+  }
+}
+
+function exportAuditCsv() {
+  const rows = adminAuditState.logs || [];
+  if (!rows.length) {
+    notify('No audit rows to export', 'warning');
+    return;
+  }
+
+  const header = ['created_at', 'action_name', 'status', 'risk', 'actor_user_id', 'actor_role', 'target_type', 'target_id', 'ip_address', 'details'];
+  const lines = [header.join(',')];
+
+  rows.forEach(log => {
+    const risk = getAuditRisk(log).level;
+    const values = [
+      log.created_at || '',
+      log.action_name || '',
+      log.status || '',
+      risk,
+      log.actor_user_id || '',
+      log.actor_role || '',
+      log.target_type || '',
+      log.target_id || '',
+      log.ip_address || '',
+      log.details || '',
+    ].map(v => `"${String(v).replace(/"/g, '""')}"`);
+
+    lines.push(values.join(','));
+  });
+
+  const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `audit-logs-${today()}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  notify('Audit CSV exported', 'success');
+}
+
+async function renderAuditSummary() {
+  try {
+    const res = await fetch('api/audit-summary.php', { credentials: 'same-origin' });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.success) return;
+
+    set('auditFailed24h', data.summary?.failed24h ?? 0);
+    set('auditHighRisk24h', data.summary?.highRisk24h ?? 0);
+    set('auditTopIp', data.summary?.topIp || '-');
+    set('auditTopActor', data.summary?.topActor || '-');
+  } catch (e) {
+    // Keep dashboard usable if summary endpoint is unavailable.
+  }
+}
+
+async function renderDbHealth() {
+  const meta = document.getElementById('dbHealthMeta');
+  const auditMeta = document.getElementById('auditDbHealthMeta');
+  if (meta) meta.textContent = 'Loading database health...';
+  if (auditMeta) auditMeta.textContent = 'Loading database health...';
+
+  try {
+    const res = await fetch('api/db-health.php', { credentials: 'same-origin' });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.success) {
+      if (meta) meta.textContent = 'Unable to load database health';
+      if (auditMeta) auditMeta.textContent = 'Unable to load database health';
+      return;
+    }
+
+    set('dbUsersCount', data.counts?.users ?? 0);
+    set('dbPaymentsCount', data.counts?.payments ?? 0);
+    set('dbAuditCount', data.counts?.audit_logs ?? 0);
+    set('dbAttendanceCount', data.counts?.attendance ?? 0);
+
+    const generated = data.generatedAt ? fmtDateTime(data.generatedAt) : '-';
+    const db = data.database || '-';
+    const label = `Database: ${db} | Last updated: ${generated}`;
+    if (meta) meta.textContent = label;
+    if (auditMeta) auditMeta.textContent = label;
+  } catch (e) {
+    if (meta) meta.textContent = 'Unable to load database health';
+    if (auditMeta) auditMeta.textContent = 'Unable to load database health';
+  }
+}
+
+function applyAuditFilters() {
+  adminAuditState.action = document.getElementById('auditActionFilter')?.value || '';
+  adminAuditState.status = document.getElementById('auditStatusFilter')?.value || '';
+  adminAuditState.actorRole = document.getElementById('auditRoleFilter')?.value || '';
+  adminAuditState.q = document.getElementById('auditSearch')?.value.trim() || '';
+  adminAuditState.dateFrom = document.getElementById('auditDateFrom')?.value || '';
+  adminAuditState.dateTo = document.getElementById('auditDateTo')?.value || '';
+  adminAuditState.includeSystem = !!document.getElementById('auditIncludeSystem')?.checked;
+  renderAuditLogs(1);
+}
+
+function clearAuditFilters() {
+  const ids = ['auditActionFilter', 'auditStatusFilter', 'auditRoleFilter', 'auditSearch', 'auditDateFrom', 'auditDateTo'];
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.value = '';
+  });
+  const includeSystem = document.getElementById('auditIncludeSystem');
+  if (includeSystem) includeSystem.checked = false;
+  adminAuditState.action = '';
+  adminAuditState.status = '';
+  adminAuditState.actorRole = '';
+  adminAuditState.q = '';
+  adminAuditState.dateFrom = '';
+  adminAuditState.dateTo = '';
+  adminAuditState.includeSystem = false;
+  renderAuditLogs(1);
+}
+
+function auditPrevPage() {
+  if (adminAuditState.page > 1) renderAuditLogs(adminAuditState.page - 1);
+}
+
+function auditNextPage() {
+  if (adminAuditState.page < adminAuditState.totalPages) renderAuditLogs(adminAuditState.page + 1);
+}
+
+async function renderAuditLogs(page = 1) {
+  adminAuditState.page = Math.max(1, page);
+  const tbody = document.getElementById('auditLogsBody');
+  if (!tbody) return;
+
+  const params = new URLSearchParams({
+    page: String(adminAuditState.page),
+    pageSize: String(adminAuditState.pageSize),
+  });
+  if (adminAuditState.action) params.set('action', adminAuditState.action);
+  if (adminAuditState.status) params.set('status', adminAuditState.status);
+  if (adminAuditState.actorRole) params.set('actorRole', adminAuditState.actorRole);
+  if (adminAuditState.q) params.set('q', adminAuditState.q);
+  if (adminAuditState.dateFrom) params.set('dateFrom', adminAuditState.dateFrom);
+  if (adminAuditState.dateTo) params.set('dateTo', adminAuditState.dateTo);
+  if (adminAuditState.includeSystem) params.set('includeSystem', '1');
+
+  tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted" style="padding:20px">Loading audit logs...</td></tr>';
+
+  try {
+    const res = await fetch(`api/audit-logs.php?${params.toString()}`, { credentials: 'same-origin' });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.success) {
+      tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted" style="padding:20px">Unable to load audit logs</td></tr>';
+      return;
+    }
+
+    const logs = Array.isArray(data.logs) ? data.logs : [];
+    adminAuditState.logs = logs;
+    adminAuditState.totalPages = Number(data.pagination?.totalPages || 1);
+    adminAuditState.total = Number(data.pagination?.total || 0);
+    adminAuditState.page = Number(data.pagination?.page || adminAuditState.page);
+
+    if (!logs.length) {
+      tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted" style="padding:20px">No audit events found</td></tr>';
+    } else {
+      tbody.innerHTML = logs.map(log => {
+        const statusClass = log.status === 'success' ? 'badge-success' : (log.status === 'failed' ? 'badge-danger' : 'badge-warning');
+        const risk = getAuditRisk(log);
+        const actorName = log.actor_name || log.actor_user_id || '-';
+        const actorLabel = `${actorName}${log.actor_role ? ` (${log.actor_role})` : ''}`;
+        const targetLabel = `${log.target_type || '-'}${log.target_id ? `:${log.target_id}` : ''}`;
+        const rowStyle = risk.level === 'high' ? ' style="background:rgba(239,68,68,0.08)"' : (risk.level === 'medium' ? ' style="background:rgba(245,158,11,0.08)"' : '');
+        return `<tr${rowStyle}>
+          <td>${escHtml(fmtDateTime(log.created_at || ''))}</td>
+          <td><span class="badge badge-secondary">${escHtml(auditActionLabel(log.action_name || '-'))}</span> ${riskBadge(risk.level)}</td>
+          <td><span class="badge ${statusClass}">${escHtml(log.status || '-')}</span></td>
+          <td>${escHtml(actorLabel)}</td>
+          <td>${escHtml(targetLabel)}</td>
+          <td>${escHtml(displayIp(log.ip_address || '-'))}</td>
+          <td style="max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escAttr(log.details || '')}">${escHtml(log.details || '-')}</td>
+        </tr>`;
+      }).join('');
+    }
+
+    adminAuditState.lastRefreshAt = new Date().toISOString();
+    const info = document.getElementById('auditPageInfo');
+    if (info) {
+      info.textContent = `Page ${adminAuditState.page} of ${adminAuditState.totalPages} • ${adminAuditState.total} events • Last refresh: ${fmtDateTime(adminAuditState.lastRefreshAt)}`;
+    }
+
+    const prevBtn = document.getElementById('auditPrevBtn');
+    const nextBtn = document.getElementById('auditNextBtn');
+    if (prevBtn) prevBtn.disabled = adminAuditState.page <= 1;
+    if (nextBtn) nextBtn.disabled = adminAuditState.page >= adminAuditState.totalPages;
+
+    renderAuditSummary();
+    renderDbHealth();
+  } catch (e) {
+    tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted" style="padding:20px">Unable to load audit logs</td></tr>';
+  }
+}
 
 // ===== ADMIN DASHBOARD =====
 function reconcileRooms() {
@@ -769,6 +1139,7 @@ async function initAdminDashboard() {
   renderAdminStats(); renderAdminRooms(); renderAdminStudents();
   renderAdminRequests(); renderAdminPayments(); renderAdminActivity();
   renderNoticesAdmin(); populateRoomDropdowns();
+  renderDbHealth();
   setTimeout(initCharts, 100);
 }
 
@@ -903,15 +1274,15 @@ function renderAdminRequests() {
     const cls = r.status==='resolved'||r.status==='approved' ? 'badge-success' : r.status==='rejected' ? 'badge-danger' : 'badge-warning';
     const canRespond = r.status === 'pending' || r.status === 'approved';
     return `<tr>
-      <td style="font-size:11px;color:var(--text-2)">#${r.id?.slice(-6)||'-'}</td>
-      <td><div class="fw-600">${student?.name||'Unknown'}</div><div style="font-size:11px;color:var(--text-2)">${student?.studentId||''}</div></td>
-      <td><span class="badge badge-secondary" style="font-size:11px">${r.type||'General'}</span></td>
-      <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px" title="${r.description||''}">${r.description||'-'}</td>
+      <td style="font-size:11px;color:var(--text-2)">#${escHtml(r.id?.slice(-6)||'-')}</td>
+      <td><div class="fw-600">${escHtml(student?.name||'Unknown')}</div><div style="font-size:11px;color:var(--text-2)">${escHtml(student?.studentId||'')}</div></td>
+      <td><span class="badge badge-secondary" style="font-size:11px">${escHtml(r.type||'General')}</span></td>
+      <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px" title="${escAttr(r.description||'')}">${escHtml(r.description||'-')}</td>
       <td style="font-size:12px">${r.date ? new Date(r.date).toLocaleDateString('en-IN') : '-'}</td>
-      <td><span class="badge ${cls}">${r.status||'pending'}</span></td>
+      <td><span class="badge ${cls}">${escHtml(r.status||'pending')}</span></td>
       <td>${canRespond
-        ? `<button class="btn btn-sm btn-primary" onclick="openAdminRespond('${r.id}')">Respond</button>`
-        : `<span style="font-size:12px;color:var(--text-2)">${r.response||'—'}</span>`}
+        ? `<button class="btn btn-sm btn-primary" onclick="openAdminRespond('${escJs(r.id)}')">Respond</button>`
+        : `<span style="font-size:12px;color:var(--text-2)">${escHtml(r.response||'—')}</span>`}
       </td></tr>`;
   }).join('') : '<tr><td colspan="7" class="text-center text-muted" style="padding:24px">No requests found</td></tr>';
 }
@@ -922,7 +1293,7 @@ function openAdminRespond(id) {
   const s = HMS.findById('users', req.studentId);
   setInput('adminRespondId', id);
   const info = document.getElementById('adminRespondInfo');
-  if (info) info.innerHTML = `<strong>${s?.name||'Unknown'}</strong> — <em>${req.type||'General'}</em><br><span style="color:var(--text-2);margin-top:4px;display:block">${req.description||''}</span>`;
+  if (info) info.innerHTML = `<strong>${escHtml(s?.name||'Unknown')}</strong> — <em>${escHtml(req.type||'General')}</em><br><span style="color:var(--text-2);margin-top:4px;display:block">${escHtml(req.description||'')}</span>`;
   const note = document.getElementById('adminRespondNote');
   if (note) note.value = req.response || '';
   openModal('adminRespondModal');
@@ -1007,12 +1378,12 @@ function renderNoticesAdmin() {
   const container = document.getElementById('noticesAdminList');
   if (!container) return;
   container.innerHTML = notices.length ? [...notices].reverse().map(n =>
-    `<div class="notice-item ${n.type}">
-      <div class="notice-title">${n.title}
-        <button class="btn btn-sm btn-ghost" style="margin-left:8px" onclick="deleteNotice('${n.id}')"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" width="13" height="13"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+    `<div class="notice-item ${escAttr(n.type)}">
+      <div class="notice-title">${escHtml(n.title)}
+        <button class="btn btn-sm btn-ghost" style="margin-left:8px" onclick="deleteNotice('${escJs(n.id)}')"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" width="13" height="13"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
       </div>
-      <div class="notice-body">${n.body}</div>
-      <div class="notice-meta">Posted by ${n.author} · ${fmtDate(n.date)}</div>
+      <div class="notice-body">${escHtml(n.body)}</div>
+      <div class="notice-meta">Posted by ${escHtml(n.author)} · ${escHtml(fmtDate(n.date))}</div>
     </div>`
   ).join('') : '<p class="text-muted text-sm">No notices posted yet</p>';
 }
