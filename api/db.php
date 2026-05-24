@@ -1,8 +1,33 @@
 <?php
-define('DB_HOST', getenv('DB_HOST') ?: 'localhost');
-define('DB_NAME', getenv('DB_NAME') ?: 'hostel_management');
-define('DB_USER', getenv('DB_USER') ?: 'root');
-define('DB_PASS', getenv('DB_PASS') ?: '');
+
+function env_value(string $key, ?string $default = null): ?string {
+    $value = getenv($key);
+    if ($value === false) {
+        return $default;
+    }
+    $value = trim((string)$value);
+    return $value === '' ? $default : $value;
+}
+
+define('APP_ENV', strtolower((string)env_value('APP_ENV', 'development')));
+define('DB_HOST', env_value('DB_HOST', 'localhost'));
+define('DB_NAME', env_value('DB_NAME', 'hostel_management'));
+define('DB_USER', env_value('DB_USER', 'root'));
+define('DB_PASS', env_value('DB_PASS', ''));
+
+if (APP_ENV === 'production') {
+    $hasUnsafeDefaults = (DB_USER === 'root' && DB_PASS === '')
+        || DB_HOST === 'localhost'
+        || DB_NAME === 'hostel_management';
+
+    if ($hasUnsafeDefaults) {
+        error_log('Refusing to start with insecure DB defaults in production. Configure DB_HOST, DB_NAME, DB_USER, DB_PASS.');
+        http_response_code(500);
+        header('Content-Type: application/json');
+        echo json_encode(['success' => false, 'error' => 'Internal server error']);
+        exit;
+    }
+}
 
 function getDB(): PDO {
     static $pdo = null;
