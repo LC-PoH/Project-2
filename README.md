@@ -145,9 +145,9 @@ The application uses a **dual-mode data architecture**:
 
 1. **On login**, the front-end calls `api/sync.php` to pull all data from MySQL into localStorage.
 2. **On every add/update/delete**, the front-end updates localStorage immediately, then sends a POST to `api/data.php` to persist the change to MySQL.
-3. **If the server is unreachable** (no XAMPP running), the front-end falls back to default data hardcoded in `script.js` — the application remains fully functional offline.
+3. **If the server is unreachable**, secure login and protected API operations are unavailable until the backend is online.
 
-This means you can demo the front-end by simply opening `login.html` in a browser without any server setup. The MySQL backend adds real persistence and secure authentication.
+Run this app behind a PHP server (XAMPP/Apache) so session-based authentication and authorization checks are enforced.
 
 ---
 
