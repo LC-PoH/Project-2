@@ -18,55 +18,101 @@
       <div class="sidebar-logo">
         <img src="logo.png" alt="AVM Logo" onerror="this.style.display='none'">
       </div>
-      <div><div class="sidebar-brand">AVM</div><div class="sidebar-brand-sub">Reception Desk</div></div>
+      <div class="sidebar-header-meta"><div class="sidebar-brand">AVM</div><div class="sidebar-brand-sub">Reception Desk</div></div>
+      <button class="sidebar-collapse-btn" type="button" title="Collapse/Expand sidebar" onclick="toggleSidebarSize()">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><rect x="3.5" y="4" width="17" height="16" rx="4" stroke-width="1.8"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 7v10"/><path class="toggle-arrow-left" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M14.5 9.5L11.7 12l2.8 2.5"/><path class="toggle-arrow-right" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M11.7 9.5l2.8 2.5-2.8 2.5" style="display:none"/></svg>
+      </button>
     </div>
     <nav class="sidebar-nav">
-      <div class="sidebar-section-label">Overview</div>
-      <button class="nav-item active" data-page="dashboard" data-title="Dashboard" onclick="showPage('dashboard')">
-        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
-        Dashboard
-      </button>
-      <div class="sidebar-section-label">Operations</div>
-      <button class="nav-item" data-page="checkinout" data-title="Check-In / Check-Out" onclick="showPage('checkinout')">
-        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
-        Check-In / Out
-      </button>
-      <button class="nav-item" data-page="visitors" data-title="Visitor Management" onclick="showPage('visitors')">
-        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
-        Visitors
-      </button>
-      <button class="nav-item" data-page="outpass" data-title="Gate Pass / Outpass" onclick="showPage('outpass')">
-        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
-        Outpass / Gate Pass
-      </button>
-      <button class="nav-item" data-page="attendance" data-title="Attendance Log" onclick="showPage('attendance')">
-        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
-        Attendance
-      </button>
-      <div class="sidebar-section-label">Students</div>
-      <button class="nav-item" data-page="students-rec" data-title="Students" onclick="showPage('students-rec')">
-        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
-        Students
-      </button>
-      <button class="nav-item" data-page="rooms-rec" data-title="Room Status" onclick="showPage('rooms-rec')">
-        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
-        Rooms
-      </button>
-      <div class="sidebar-section-label">Service</div>
-      <button class="nav-item" data-page="requests-rec" data-title="Student Requests" onclick="showPage('requests-rec')">
-        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
-        Requests
-        <span class="nav-badge" id="recPendingBadge" style="display:none">0</span>
-      </button>
-      <button class="nav-item" data-page="payments-rec" data-title="Payments" onclick="showPage('payments-rec')">
-        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
-        Payments
-        <span class="nav-badge nav-badge-orange" id="recPendingPayBadge" style="display:none">0</span>
-      </button>
-      <button class="nav-item" data-page="notices-rec" data-title="Notice Board" onclick="showPage('notices-rec')">
-        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"/></svg>
-        Notice Board
-      </button>
+      <div class="sidebar-section" data-section="overview">
+        <button class="sidebar-section-toggle" type="button">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+          <span class="section-label-text">Overview</span>
+        </button>
+        <div class="sidebar-section-flyout">
+          <div class="sidebar-flyout-title">Overview</div>
+          <div class="sidebar-section-items">
+            <button class="nav-item active" data-page="dashboard" data-title="Dashboard" onclick="showPage('dashboard')">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+              Dashboard
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="sidebar-section" data-section="operations">
+        <button class="sidebar-section-toggle" type="button">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+          <span class="section-label-text">Operations</span>
+        </button>
+        <div class="sidebar-section-flyout">
+          <div class="sidebar-flyout-title">Operations</div>
+          <div class="sidebar-section-items">
+            <button class="nav-item" data-page="checkinout" data-title="Check-In / Check-Out" onclick="showPage('checkinout')">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+              Check-In / Out
+            </button>
+            <button class="nav-item" data-page="visitors" data-title="Visitor Management" onclick="showPage('visitors')">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+              Visitors
+            </button>
+            <button class="nav-item" data-page="outpass" data-title="Gate Pass / Outpass" onclick="showPage('outpass')">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+              Outpass / Gate Pass
+            </button>
+            <button class="nav-item" data-page="attendance" data-title="Attendance Log" onclick="showPage('attendance')">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+              Attendance
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="sidebar-section" data-section="students">
+        <button class="sidebar-section-toggle" type="button">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+          <span class="section-label-text">Students</span>
+        </button>
+        <div class="sidebar-section-flyout">
+          <div class="sidebar-flyout-title">Students</div>
+          <div class="sidebar-section-items">
+            <button class="nav-item" data-page="students-rec" data-title="Students" onclick="showPage('students-rec')">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+              Students
+            </button>
+            <button class="nav-item" data-page="rooms-rec" data-title="Room Status" onclick="showPage('rooms-rec')">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+              Rooms
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="sidebar-section" data-section="service">
+        <button class="sidebar-section-toggle" type="button">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+          <span class="section-label-text">Service</span>
+        </button>
+        <div class="sidebar-section-flyout">
+          <div class="sidebar-flyout-title">Service</div>
+          <div class="sidebar-section-items">
+            <button class="nav-item" data-page="requests-rec" data-title="Student Requests" onclick="showPage('requests-rec')">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+              Requests
+              <span class="nav-badge" id="recPendingBadge" style="display:none">0</span>
+            </button>
+            <button class="nav-item" data-page="payments-rec" data-title="Payments" onclick="showPage('payments-rec')">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+              Payments
+              <span class="nav-badge nav-badge-orange" id="recPendingPayBadge" style="display:none">0</span>
+            </button>
+            <button class="nav-item" data-page="notices-rec" data-title="Notice Board" onclick="showPage('notices-rec')">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"/></svg>
+              Notice Board
+            </button>
+          </div>
+        </div>
+      </div>
     </nav>
     <div class="sidebar-footer">
       <div class="sidebar-user">
@@ -78,7 +124,7 @@
       </div>
       <button class="sidebar-logout" onclick="logout()">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
-        Logout
+        <span class="logout-text">Logout</span>
       </button>
     </div>
   </aside>
