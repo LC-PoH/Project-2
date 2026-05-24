@@ -1,8 +1,8 @@
 <?php
-define('DB_HOST', 'localhost');
-define('DB_NAME', 'hostel_management');
-define('DB_USER', 'root');
-define('DB_PASS', '');
+define('DB_HOST', getenv('DB_HOST') ?: 'localhost');
+define('DB_NAME', getenv('DB_NAME') ?: 'hostel_management');
+define('DB_USER', getenv('DB_USER') ?: 'root');
+define('DB_PASS', getenv('DB_PASS') ?: '');
 
 function getDB(): PDO {
     static $pdo = null;
@@ -20,7 +20,7 @@ function getDB(): PDO {
         } catch (PDOException $e) {
             http_response_code(500);
             header('Content-Type: application/json');
-            echo json_encode(['success' => false, 'error' => 'DB connection failed: ' . $e->getMessage()]);
+            echo json_encode(['success' => false, 'error' => 'Internal server error']);
             exit;
         }
     }
