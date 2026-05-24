@@ -5,6 +5,8 @@ require_once __DIR__ . '/db.php';
 require_method('POST');
 $session = require_auth(['student', 'receptionist', 'admin']);
 require_csrf();
+// Release the PHP session file lock so concurrent persist() calls don't queue.
+session_write_close();
 
 $input  = read_json_input();
 $jsKey  = (string)($input['table']  ?? '');
