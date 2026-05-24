@@ -19,36 +19,60 @@
       <div class="sidebar-logo">
         <img src="logo.png" alt="AVM Logo" onerror="this.style.display='none'">
       </div>
-      <div><div class="sidebar-brand">AVM</div><div class="sidebar-brand-sub">Student Portal</div></div>
+      <div class="sidebar-header-meta"><div class="sidebar-brand">AVM</div><div class="sidebar-brand-sub">Student Portal</div></div>
+      <button class="sidebar-collapse-btn" type="button" title="Collapse/Expand sidebar" onclick="toggleSidebarSize()">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><rect x="3.5" y="4" width="17" height="16" rx="4" stroke-width="1.8"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 7v10"/><path class="toggle-arrow-left" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M14.5 9.5L11.7 12l2.8 2.5"/><path class="toggle-arrow-right" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M11.7 9.5l2.8 2.5-2.8 2.5" style="display:none"/></svg>
+      </button>
     </div>
 
     <nav class="sidebar-nav">
-      <div class="sidebar-section-label">Main</div>
-      <button class="nav-item active" data-page="dashboard" data-title="Dashboard" onclick="showPage('dashboard')">
-        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
-        Dashboard
-      </button>
-      <button class="nav-item" data-page="bookings" data-title="My Bookings" onclick="showPage('bookings')">
-        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-        My Bookings
-      </button>
-      <button class="nav-item" data-page="payments" data-title="Payments" onclick="showPage('payments')">
-        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
-        Payments
-      </button>
-      <button class="nav-item" data-page="requests" data-title="Requests & Complaints" onclick="showPage('requests')">
-        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-        Requests
-      </button>
-      <button class="nav-item" data-page="notices" data-title="Notice Board" onclick="showPage('notices')">
-        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
-        Notice Board
-      </button>
-      <div class="sidebar-section-label">Account</div>
-      <button class="nav-item" data-page="profile" data-title="My Profile" onclick="showPage('profile')">
-        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-        My Profile
-      </button>
+      <div class="sidebar-section" data-section="main">
+        <button class="sidebar-section-toggle" type="button">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+          <span class="section-label-text">Main</span>
+        </button>
+        <div class="sidebar-section-flyout">
+          <div class="sidebar-flyout-title">Main</div>
+          <div class="sidebar-section-items">
+            <button class="nav-item active" data-page="dashboard" data-title="Dashboard" onclick="showPage('dashboard')">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+              Dashboard
+            </button>
+            <button class="nav-item" data-page="bookings" data-title="My Bookings" onclick="showPage('bookings')">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+              My Bookings
+            </button>
+            <button class="nav-item" data-page="payments" data-title="Payments" onclick="showPage('payments')">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+              Payments
+            </button>
+            <button class="nav-item" data-page="requests" data-title="Requests & Complaints" onclick="showPage('requests')">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+              Requests
+            </button>
+            <button class="nav-item" data-page="notices" data-title="Notice Board" onclick="showPage('notices')">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+              Notice Board
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="sidebar-section" data-section="account">
+        <button class="sidebar-section-toggle" type="button">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+          <span class="section-label-text">Account</span>
+        </button>
+        <div class="sidebar-section-flyout">
+          <div class="sidebar-flyout-title">Account</div>
+          <div class="sidebar-section-items">
+            <button class="nav-item" data-page="profile" data-title="My Profile" onclick="showPage('profile')">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+              My Profile
+            </button>
+          </div>
+        </div>
+      </div>
     </nav>
 
     <div class="sidebar-footer">
@@ -61,7 +85,7 @@
       </div>
       <button class="sidebar-logout" onclick="logout()">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
-        Logout
+        <span class="logout-text">Logout</span>
       </button>
     </div>
   </aside>
