@@ -160,9 +160,27 @@ const HMS = {
     return false;
   },
 
+  async refreshSessionState() {
+    try {
+      const res = await fetch('api/session.php', { credentials: 'same-origin' });
+      if (!res.ok) return false;
+      const data = await res.json().catch(() => ({}));
+      if (!data.success || !data.user) return false;
+      this.setSession({ userId: data.user.id, role: data.user.role, name: data.user.name });
+      if (data.csrfToken) this.setCsrfToken(data.csrfToken);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  },
+
   async persist(table, action, data) {
     try {
-      const res = await fetch('api/data.php', {
+      if (!this.getCsrfToken()) {
+        await this.refreshSessionState();
+      }
+
+      const send = async () => fetch('api/data.php', {
         method: 'POST',
         credentials: 'same-origin',
         headers: {
@@ -171,6 +189,24 @@ const HMS = {
         },
         body: JSON.stringify({ table, action, data }),
       });
+
+      let res = await send();
+
+      if (!res.ok && res.status === 403) {
+        const firstResult = await res.json().catch(() => ({}));
+        if ((firstResult.error || '').toLowerCase().includes('csrf')) {
+          const refreshed = await this.refreshSessionState();
+          if (!refreshed) {
+            notify('Session expired. Please login again.', 'error');
+            return;
+          }
+          res = await send();
+        } else {
+          notify(firstResult.error || 'Server rejected this change', 'error');
+          return;
+        }
+      }
+
       if (!res.ok) {
         const result = await res.json().catch(() => ({}));
         notify(result.error || 'Server rejected this change', 'error');
@@ -550,12 +586,26 @@ function exportTableCSV(tableId, filename) {
 
 // ===== STUDENT DASHBOARD =====
 async function initStudentDashboard() {
-  const session = requireAuth('student');
-  if (!session) return;
+  const localSession = requireAuth('student');
+  if (!localSession) return;
+  const refreshed = await HMS.refreshSessionState();
+  const session = HMS.getSession() || localSession;
+  if (refreshed && session.role !== 'student') {
+    notify('Your active web session is not Student. Please login again as Student.', 'error');
+    HMS.clearSession();
+    window.location.href = 'login.html';
+    return;
+  }
   initTopbar(session);
   showPage('dashboard');
   await HMS.syncFromDB();
   const student = HMS.findById('users', session.userId);
+  if (!student) {
+    notify('Unable to load student profile. Please login again.', 'error');
+    HMS.clearSession();
+    window.location.href = 'login.html';
+    return;
+  }
   renderStudentDashboard(student);
   renderStudentBookings(student);
   renderStudentPayments(student);
@@ -708,18 +758,25 @@ function openPaymentModal() {
   openModal('paymentModal');
 }
 
-function submitPayment(e) {
+async function submitPayment(e) {
   e.preventDefault();
   const session = HMS.getSession();
   const method = document.getElementById('payMethod').value;
   const amount = Number(document.getElementById('payAmount').value);
   if (!method || !amount) { notify('Please fill in all payment details', 'warning'); return; }
 
+  const refreshed = await HMS.refreshSessionState();
+  const activeSession = HMS.getSession() || session;
+  if (refreshed && activeSession?.role !== 'student') {
+    notify('Payment blocked: active session is not Student. Please login as Student.', 'error');
+    return;
+  }
+
   const idempotencyKey = (typeof crypto !== 'undefined' && crypto.randomUUID)
     ? crypto.randomUUID()
     : `pay-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
-  fetch('api/payments.php', {
+  const sendPayment = async () => fetch('api/payments.php', {
     method: 'POST',
     credentials: 'same-origin',
     headers: {
@@ -727,24 +784,38 @@ function submitPayment(e) {
       'X-CSRF-Token': HMS.getCsrfToken() || '',
     },
     body: JSON.stringify({ method, amount, idempotencyKey }),
-  })
-    .then(r => r.json())
-    .then(async data => {
-      if (!data.success) {
-        notify(data.error || 'Payment failed', 'error');
-        return;
-      }
+  });
 
-      await HMS.syncFromDB();
-      notify(`Payment of ${fmtCurrency(data.paidAmount || amount)} submitted successfully.`, 'success');
-      closeModal('paymentModal');
-      e.target.reset();
-      renderStudentPayments(HMS.findById('users', session.userId));
-      renderStudentDashboard(HMS.findById('users', session.userId));
-    })
-    .catch(() => {
-      notify('Payment service unavailable. Please try again.', 'error');
-    });
+  try {
+    let res = await sendPayment();
+    let data = await res.json().catch(() => ({}));
+
+    if (!res.ok && res.status === 403 && String(data.error || '').toLowerCase().includes('csrf')) {
+      const refreshedCsrf = await HMS.refreshSessionState();
+      if (refreshedCsrf) {
+        res = await sendPayment();
+        data = await res.json().catch(() => ({}));
+      }
+    }
+
+    if (!res.ok || !data.success) {
+      notify(data.error || 'Payment failed', 'error');
+      return;
+    }
+
+    await HMS.syncFromDB();
+    notify(`Payment of ${fmtCurrency(data.paidAmount || amount)} submitted successfully.`, 'success');
+    closeModal('paymentModal');
+    e.target.reset();
+    const latestSession = HMS.getSession() || activeSession;
+    const student = HMS.findById('users', latestSession?.userId || '');
+    if (student) {
+      renderStudentPayments(student);
+      renderStudentDashboard(student);
+    }
+  } catch (err) {
+    notify('Payment service unavailable. Please try again.', 'error');
+  }
 }
 
 function updateProfile(e) {
@@ -1102,16 +1173,16 @@ async function renderAuditLogs(page = 1) {
         const risk = getAuditRisk(log);
         const actorName = log.actor_name || log.actor_user_id || '-';
         const actorLabel = `${actorName}${log.actor_role ? ` (${log.actor_role})` : ''}`;
-        const targetLabel = `${log.target_type || '-'}${log.target_id ? `:${log.target_id}` : ''}`;
+        const targetLabel = log.target_display || `${log.target_type || '-'}${log.target_id ? `:${log.target_id}` : ''}`;
         const rowStyle = risk.level === 'high' ? ' style="background:rgba(239,68,68,0.08)"' : (risk.level === 'medium' ? ' style="background:rgba(245,158,11,0.08)"' : '');
         return `<tr${rowStyle}>
           <td>${escHtml(fmtDateTime(log.created_at || ''))}</td>
           <td><span class="badge badge-secondary">${escHtml(auditActionLabel(log.action_name || '-'))}</span> ${riskBadge(risk.level)}</td>
           <td><span class="badge ${statusClass}">${escHtml(log.status || '-')}</span></td>
           <td>${escHtml(actorLabel)}</td>
-          <td>${escHtml(targetLabel)}</td>
+          <td><div class="audit-target-scroll" title="${escAttr(targetLabel)}">${escHtml(targetLabel)}</div></td>
           <td>${escHtml(displayIp(log.ip_address || '-'))}</td>
-          <td style="max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escAttr(log.details || '')}">${escHtml(log.details || '-')}</td>
+          <td><div class="audit-detail-scroll" title="${escAttr(log.details || '')}">${escHtml(log.details || '-')}</div></td>
         </tr>`;
       }).join('');
     }
@@ -1156,6 +1227,7 @@ function reconcileRooms() {
 async function initAdminDashboard() {
   const session = requireAuth('admin');
   if (!session) return;
+  await HMS.refreshSessionState();
   initTopbar(session);
   showPage('dashboard');
   await HMS.syncFromDB();
@@ -1336,6 +1408,7 @@ function adminActOnRequest(newStatus) {
   closeModal('adminRespondModal');
   notify('Request ' + newStatus + ' successfully', newStatus==='rejected'?'warning':'success');
   renderAdminRequests(); renderAdminStats();
+  renderAdminActivity();
   if (typeof populateQuickRequests === 'function') populateQuickRequests();
 }
 
@@ -1385,15 +1458,73 @@ function renderAdminPayments() {
 function renderAdminActivity() {
   const container = document.getElementById('activityFeed');
   if (!container) return;
-  const activities = [
-    { text:'Arjun Sharma made payment of ₹5,000 via UPI', time:'2 hours ago', color:'green' },
-    { text:'New request submitted by Rahul Verma: Room Change', time:'4 hours ago', color:'blue' },
-    { text:'Visitor Meena Sharma checked in for Arjun Sharma', time:'5 hours ago', color:'orange' },
-    { text:'Room A-101 maintenance request resolved', time:'Yesterday', color:'purple' },
-    { text:'New student Sneha Singh registered and assigned Room B-201', time:'2 days ago', color:'green' },
-  ];
+  const usersById = new Map(HMS.get('users').map(u => [u.id, u]));
+  const rows = [];
+
+  const humanTime = (ts) => {
+    if (!Number.isFinite(ts) || ts <= 0) return '-';
+    const diff = Math.max(0, Date.now() - ts);
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return 'just now';
+    if (mins < 60) return `${mins} minute${mins === 1 ? '' : 's'} ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs} hour${hrs === 1 ? '' : 's'} ago`;
+    const days = Math.floor(hrs / 24);
+    if (days === 1) return 'Yesterday';
+    return `${days} days ago`;
+  };
+
+  HMS.get('payments').forEach(p => {
+    if (p.status !== 'paid') return;
+    const ts = Date.parse(p.collectedAt || p.date || '');
+    const student = usersById.get(p.studentId);
+    rows.push({
+      ts: Number.isFinite(ts) ? ts : 0,
+      color: 'green',
+      text: `${student?.name || p.studentName || 'Student'} made payment of ${fmtCurrency(p.amount)} via ${p.method || 'online'}`,
+    });
+  });
+
+  HMS.get('requests').forEach(r => {
+    const student = usersById.get(r.studentId);
+    const submittedTs = Date.parse(r.date || '');
+    rows.push({
+      ts: Number.isFinite(submittedTs) ? submittedTs : 0,
+      color: 'blue',
+      text: `New request submitted by ${student?.name || 'Student'}: ${r.type || 'General'}`,
+    });
+
+    if (['resolved', 'approved', 'rejected'].includes(String(r.status || '').toLowerCase())) {
+      const resolvedTs = Date.parse(r.resolvedAt || r.date || '');
+      rows.push({
+        ts: Number.isFinite(resolvedTs) ? resolvedTs : 0,
+        color: r.status === 'rejected' ? 'red' : 'purple',
+        text: `${student?.name || 'Student'} request ${r.status}${r.type ? `: ${r.type}` : ''}`,
+      });
+    }
+  });
+
+  HMS.get('visitors').forEach(v => {
+    const ts = Date.parse(v.checkIn || '');
+    const student = usersById.get(v.studentId);
+    rows.push({
+      ts: Number.isFinite(ts) ? ts : 0,
+      color: 'orange',
+      text: `Visitor ${v.name || 'Guest'} checked in for ${student?.name || 'student'}`,
+    });
+  });
+
+  const activities = rows
+    .filter(a => a.ts > 0)
+    .sort((a, b) => b.ts - a.ts);
+
+  if (!activities.length) {
+    container.innerHTML = '<div class="text-muted text-sm">No recent activity</div>';
+    return;
+  }
+
   container.innerHTML = activities.map(a =>
-    `<div class="activity-item"><div class="activity-dot ${a.color}"></div><div class="activity-body"><div class="activity-text">${a.text}</div><div class="activity-time">${a.time}</div></div></div>`
+    `<div class="activity-item"><div class="activity-dot ${escAttr(a.color)}"></div><div class="activity-body"><div class="activity-text">${escHtml(a.text)}</div><div class="activity-time">${escHtml(humanTime(a.ts))}</div></div></div>`
   ).join('');
 }
 
@@ -1804,6 +1935,7 @@ function initCharts() {
 async function initReceptionistDashboard() {
   const session = requireAuth('receptionist');
   if (!session) return;
+  await HMS.refreshSessionState();
   initTopbar(session);
   showPage('dashboard');
   await HMS.syncFromDB();
