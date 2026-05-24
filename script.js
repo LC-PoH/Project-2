@@ -2158,9 +2158,11 @@ function renderStudentsList() {
       <td style="font-size:12px;color:var(--text-2)">${s.course||'-'}</td>
       <td>${pendingPay > 0 ? `<span class="badge badge-danger">${pendingPay} pending</span>` : '<span class="badge badge-success">Clear</span>'}</td>
       <td><span class="badge ${attCls}">${present?'Present':attStatus}</span></td>
-      <td class="btn-group">
-        <button class="btn btn-sm btn-primary" onclick="viewRecStudent('${s.id}')">View</button>
-        ${!present?`<button class="btn btn-sm btn-success" onclick="quickCheckIn('${s.id}')">In</button>`:`<button class="btn btn-sm btn-secondary" onclick="markOut('${s.id}')">Out</button>`}
+      <td class="actions-cell">
+        <div class="btn-group">
+          <button class="btn btn-sm btn-primary" onclick="viewRecStudent('${s.id}')">View</button>
+          ${!present?`<button class="btn btn-sm btn-success" onclick="quickCheckIn('${s.id}')">In</button>`:`<button class="btn btn-sm btn-secondary" onclick="markOut('${s.id}')">Out</button>`}
+        </div>
       </td></tr>`;
   }).join('');
 }
