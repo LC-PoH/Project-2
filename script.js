@@ -443,6 +443,102 @@ function closeMobileSidebar() {
   document.getElementById('sidebarOverlay').classList.remove('visible');
 }
 
+function updateSidebarToggleButtonIcon(sidebar) {
+  const host = sidebar || document.querySelector('.sidebar');
+  if (!host) return;
+
+  const btn = host.querySelector('.sidebar-collapse-btn');
+  const arrow = host.querySelector('.sidebar-collapse-btn .toggle-arrow-path');
+  const leftArrow = host.querySelector('.sidebar-collapse-btn .toggle-arrow-left');
+  const rightArrow = host.querySelector('.sidebar-collapse-btn .toggle-arrow-right');
+  const collapsed = host.classList.contains('collapsed');
+
+  if (btn) {
+    btn.title = collapsed ? 'Expand sidebar' : 'Collapse sidebar';
+  }
+
+  if (leftArrow && rightArrow) {
+    leftArrow.style.display = collapsed ? 'none' : '';
+    rightArrow.style.display = collapsed ? '' : 'none';
+  } else if (arrow) {
+    arrow.setAttribute('d', collapsed ? 'M11.7 9.5l2.8 2.5-2.8 2.5' : 'M14.5 9.5L11.7 12l2.8 2.5');
+  }
+}
+
+function initSidebarUI() {
+  const sidebar = document.querySelector('.sidebar');
+  if (!sidebar) return;
+  const sections = sidebar.querySelectorAll('.sidebar-section');
+
+  if (window.innerWidth <= 768) {
+    sidebar.classList.remove('collapsed');
+    sections.forEach(s => s.classList.add('open'));
+    updateSidebarToggleButtonIcon(sidebar);
+    return;
+  }
+
+  const collapsed = localStorage.getItem('hms_sidebar_collapsed') === '1';
+  sidebar.classList.toggle('collapsed', collapsed);
+  if (collapsed) {
+    sections.forEach(s => s.classList.remove('open'));
+  } else {
+    sections.forEach(s => s.classList.add('open'));
+  }
+  updateSidebarToggleButtonIcon(sidebar);
+}
+
+function toggleSidebarSize() {
+  const sidebar = document.querySelector('.sidebar');
+  if (!sidebar || window.innerWidth <= 768) return;
+  const sections = sidebar.querySelectorAll('.sidebar-section');
+
+  const nextCollapsed = !sidebar.classList.contains('collapsed');
+  sidebar.classList.toggle('collapsed', nextCollapsed);
+  localStorage.setItem('hms_sidebar_collapsed', nextCollapsed ? '1' : '0');
+
+  if (nextCollapsed) {
+    sections.forEach(s => s.classList.remove('open'));
+  } else {
+    sections.forEach(s => s.classList.add('open'));
+  }
+  updateSidebarToggleButtonIcon(sidebar);
+}
+
+window.addEventListener('resize', () => {
+  const sidebar = document.querySelector('.sidebar');
+  if (!sidebar) return;
+  if (window.innerWidth <= 768) {
+    sidebar.classList.remove('collapsed');
+    sidebar.querySelectorAll('.sidebar-section.open').forEach(s => s.classList.remove('open'));
+    updateSidebarToggleButtonIcon(sidebar);
+  } else {
+    initSidebarUI();
+  }
+});
+
+document.addEventListener('click', (e) => {
+  const sidebar = document.querySelector('.sidebar');
+  if (!sidebar) return;
+
+  const toggleBtn = e.target.closest('.sidebar-section-toggle');
+  if (toggleBtn) {
+    const section = toggleBtn.closest('.sidebar-section');
+    if (!section) return;
+
+    if (window.innerWidth > 768 && sidebar.classList.contains('collapsed')) {
+      sidebar.querySelectorAll('.sidebar-section.open').forEach(s => s.classList.remove('open'));
+      // In collapsed desktop mode, rely on hover flyouts to avoid sticky overlapping panels.
+    } else {
+      section.classList.toggle('open');
+    }
+    return;
+  }
+
+  if (window.innerWidth > 768 && sidebar.classList.contains('collapsed') && !e.target.closest('.sidebar')) {
+    sidebar.querySelectorAll('.sidebar-section.open').forEach(s => s.classList.remove('open'));
+  }
+});
+
 // ===== MODALS =====
 function openModal(id) {
   const m = document.getElementById(id);
@@ -588,6 +684,7 @@ function exportTableCSV(tableId, filename) {
 async function initStudentDashboard() {
   const localSession = requireAuth('student');
   if (!localSession) return;
+  initSidebarUI();
   const refreshed = await HMS.refreshSessionState();
   const session = HMS.getSession() || localSession;
   if (refreshed && session.role !== 'student') {
@@ -968,6 +1065,47 @@ function riskBadge(level) {
   return '<span class="badge badge-success">low</span>';
 }
 
+function ensureAuditCellModal() {
+  if (document.getElementById('auditCellModal')) return;
+
+  const host = document.createElement('div');
+  host.id = 'auditCellModal';
+  host.className = 'modal-overlay';
+  host.innerHTML = `
+    <div class="modal audit-cell-modal">
+      <div class="modal-header">
+        <div class="modal-title" id="auditCellModalTitle">Audit Detail</div>
+        <button class="modal-close" onclick="closeModal('auditCellModal')"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+      </div>
+      <div class="modal-body">
+        <div class="audit-cell-fulltext" id="auditCellModalText"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('auditCellModal')">Close</button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(host);
+}
+
+function openAuditCellPanel(label, value) {
+  ensureAuditCellModal();
+  const titleEl = document.getElementById('auditCellModalTitle');
+  const textEl = document.getElementById('auditCellModalText');
+  if (titleEl) titleEl.textContent = label || 'Audit Detail';
+  if (textEl) textEl.textContent = value || '-';
+  openModal('auditCellModal');
+}
+
+document.addEventListener('click', (e) => {
+  const trigger = e.target.closest('.audit-cell-trigger');
+  if (!trigger) return;
+  const label = trigger.getAttribute('data-audit-label') || 'Audit Detail';
+  const value = trigger.getAttribute('data-audit-value') || trigger.textContent || '-';
+  openAuditCellPanel(label, value);
+});
+
 function auditActionLabel(action) {
   const map = {
     login: 'Login',
@@ -1180,9 +1318,9 @@ async function renderAuditLogs(page = 1) {
           <td><span class="badge badge-secondary">${escHtml(auditActionLabel(log.action_name || '-'))}</span> ${riskBadge(risk.level)}</td>
           <td><span class="badge ${statusClass}">${escHtml(log.status || '-')}</span></td>
           <td>${escHtml(actorLabel)}</td>
-          <td><div class="audit-target-scroll" title="${escAttr(targetLabel)}">${escHtml(targetLabel)}</div></td>
+          <td><div class="audit-target-scroll audit-cell-trigger" data-audit-label="Target" data-audit-value="${escAttr(targetLabel)}" title="Click to view full target">${escHtml(targetLabel)}</div></td>
           <td>${escHtml(displayIp(log.ip_address || '-'))}</td>
-          <td><div class="audit-detail-scroll" title="${escAttr(log.details || '')}">${escHtml(log.details || '-')}</div></td>
+          <td><div class="audit-detail-scroll audit-cell-trigger" data-audit-label="Details" data-audit-value="${escAttr(log.details || '-')}" title="Click to view full details">${escHtml(log.details || '-')}</div></td>
         </tr>`;
       }).join('');
     }
@@ -1227,6 +1365,7 @@ function reconcileRooms() {
 async function initAdminDashboard() {
   const session = requireAuth('admin');
   if (!session) return;
+  initSidebarUI();
   await HMS.refreshSessionState();
   initTopbar(session);
   showPage('dashboard');
@@ -1935,6 +2074,7 @@ function initCharts() {
 async function initReceptionistDashboard() {
   const session = requireAuth('receptionist');
   if (!session) return;
+  initSidebarUI();
   await HMS.refreshSessionState();
   initTopbar(session);
   showPage('dashboard');
