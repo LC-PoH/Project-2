@@ -1,197 +1,171 @@
-# 🏨 Hostel Management System
+# Hostel Management System (AVM Secondary School)
 
-A web-based hostel management platform built for **AVM Secondary School**. The system provides role-based dashboards for students, receptionists, and administrators to manage rooms, bookings, payments, visitors, attendance, and more.
+A role-based hostel operations platform for AVM Secondary School with secure PHP APIs, MySQL persistence, and dashboard workflows for Student, Receptionist, and Admin users.
 
-Built with vanilla HTML5, CSS3, and JavaScript on the front-end, with a PHP/MySQL backend — no frameworks, no CMS.
+## Current Highlights
 
----
+- Role-based login with server session authentication
+- CSRF protection for mutating API operations
+- Login rate limiting and security-focused error handling
+- Transaction-safe student payment submission with idempotency
+- Audit logging for sensitive actions
+- Admin Audit Logs page with filters, pagination, CSV export, risk badges, and auto-refresh
+- Admin DB Health widget for live database/table visibility
+- localStorage + server sync model with server-side authorization enforcement
 
-## ✨ Features
+## Role Features
 
-**Three Role-Based Dashboards**
+### Student
 
-- **Student** — View bookings, make payments, submit requests & complaints, read notices, update profile, change password
-- **Receptionist** — Process check-in/check-out, manage visitors, record attendance, view room status, search students
-- **Owner / Admin** — Analytics & charts, room management, student CRUD, payment tracking, approve/reject requests, post notices
+- View bookings, room details, and notices
+- View payment history and submit payment through secure backend endpoint
+- Submit requests/complaints
+- Update profile
+- Change password (server-validated)
 
-**Technical Highlights**
+### Receptionist
 
-- Dual-mode data architecture — works offline with localStorage, syncs to MySQL when the server is available
-- Dark/light theme toggle with CSS custom properties (persisted in localStorage)
-- Single-page navigation within each dashboard (no page reloads)
-- Reusable modal system and floating notification toasts
-- CSV export for data tables (bookings, payments, students, attendance)
-- Chart.js integration for revenue, occupancy, and payment analytics
-- Secure authentication with bcrypt password hashing (server-side)
-- PDO prepared statements on all database queries (no SQL injection)
+- Check-in/check-out operations
+- Visitor management
+- Attendance management
+- Outpass / gate pass operations
+- Requests and payment desk operations (restricted by backend role rules)
 
----
+### Admin / Owner
 
-## 🛠️ Tech Stack
+- Dashboard stats, rooms, students, payments, requests, notices
+- Analytics charts
+- Audit Logs monitoring page
+- Audit Summary cards (24h failed/high-risk/top IP/top actor)
+- DB Health panel (database name + key table counts)
+
+## Tech Stack
 
 | Layer | Technology |
-|-------|-----------|
-| Front-End | HTML5, CSS3, Vanilla JavaScript |
-| Back-End | PHP 8 with PDO |
+|---|---|
+| Frontend | HTML, CSS, Vanilla JavaScript |
+| Backend | PHP 8 (PDO) |
 | Database | MySQL |
 | Charts | Chart.js |
-| Version Control | Git / GitHub |
 
----
+## Project Structure
 
-## 📁 Project Structure
-
-```
+```text
 Hostel-Management-System/
-├── login.html                    # Login page with role selector
-├── student-dashboard.html        # Student portal (6 pages)
-├── receptionist-dashboard.html   # Receptionist portal (6 pages)
-├── owner-dashboard.html          # Admin portal (7 pages)
-├── index.html                    # Redirect to login
-├── styles.css                    # Global stylesheet (750+ lines)
-├── script.js                     # Core logic (1280+ lines)
-├── logo.png                      # AVM school logo
-├── database.sql                  # MySQL schema (8 tables)
+├── index.html
+├── login.html
+├── student-dashboard.html
+├── receptionist-dashboard.html
+├── owner-dashboard.html
+├── styles.css
+├── script.js
+├── database.sql
+├── security-audit.md
 └── api/
-    ├── db.php                    # Database connection (PDO)
-    ├── login.php                 # Authentication endpoint
-    ├── sync.php                  # Fetch all data from DB
-    ├── data.php                  # Generic CRUD endpoint
-    ├── change-password.php       # Password change endpoint
-    ├── setup.php                 # Data seeder (60+ records)
-    └── migrate.php               # DB recreation script
+    ├── auth.php
+    ├── db.php
+    ├── login.php
+    ├── logout.php
+    ├── session.php
+    ├── sync.php
+    ├── data.php
+    ├── payments.php
+    ├── change-password.php
+    ├── audit-logs.php
+    ├── audit-summary.php
+    ├── db-health.php
+    ├── setup.php
+    ├── migrate.php
+    └── version.php
 ```
 
----
+## Database Model
 
-## 🗄️ Database Schema
+Core tables:
 
-The system uses **8 MySQL tables**:
+- users
+- rooms
+- bookings
+- payments
+- requests
+- visitors
+- attendance
+- notices
+- outpasses
+- audit_logs
 
-| Table | Purpose |
-|-------|---------|
-| `users` | All users (students, receptionist, admin) with bcrypt-hashed passwords |
-| `rooms` | Room details, capacity, rent, status, amenities (stored as JSON) |
-| `bookings` | Student room bookings with check-in/out dates and status |
-| `payments` | Payment records linked to bookings with transaction IDs |
-| `requests` | Student maintenance requests and complaints |
-| `visitors` | Visitor log with check-in/out timestamps |
-| `attendance` | Daily student attendance records |
-| `notices` | Admin announcements and notice board posts |
+## Security Model
 
----
+- Session auth and role-based authorization in shared auth middleware
+- CSRF token required on mutating endpoints
+- Login brute-force protection via rate limiting
+- Server-side input sanitation and table/role mutation guardrails
+- Prepared statements with PDO
+- Restricted setup/migrate execution contexts
+  - setup.php: localhost only
+  - migrate.php: CLI only
 
-## 🚀 Getting Started
+## Setup (XAMPP / Windows)
 
-### Prerequisites
+1. Place project in:
 
-- [XAMPP](https://www.apachefriends.org/) (or any Apache + PHP + MySQL stack)
-- A modern web browser
+```text
+C:\xampp\htdocs\Hostel-Management-System
+```
 
-### Installation
+2. Start Apache and MySQL in XAMPP.
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/your-username/Hostel-Management-System.git
-   ```
+3. Run migration from terminal (not browser):
 
-2. **Move to your web server directory**
-   ```bash
-   # For XAMPP on Windows:
-   cp -r Hostel-Management-System/ C:/xampp/htdocs/hms/
+```powershell
+Set-Location C:\xampp\htdocs\Hostel-Management-System
+& C:\xampp\php\php.exe .\api\migrate.php
+```
 
-   # For XAMPP on macOS:
-   cp -r Hostel-Management-System/ /Applications/XAMPP/htdocs/hms/
-   ```
+4. Seed data from localhost:
 
-3. **Start Apache and MySQL** in the XAMPP Control Panel.
+```text
+http://localhost/Hostel-Management-System/api/setup.php
+```
 
-4. **Create the database and tables**
+5. Open app:
 
-   Open your browser and navigate to:
-   ```
-   http://localhost/hms/api/migrate.php
-   ```
-   This will create the `hostel_management` database and all 8 tables.
+```text
+http://localhost/Hostel-Management-System/login.html
+```
 
-5. **Seed the sample data**
-
-   Navigate to:
-   ```
-   http://localhost/hms/api/setup.php
-   ```
-   This inserts 13 users, 8 rooms, 12 bookings, 21 payments, and sample data for all other tables.
-
-6. **Open the application**
-   ```
-   http://localhost/hms/login.html
-   ```
-
-### Demo Credentials
+## Demo Credentials
 
 | Role | Username | Password |
-|------|----------|----------|
-| Admin / Owner | `admin` | `admin123` |
-| Student | `student123` | `pass123` |
-| Receptionist | `reception` | `rec123` |
+|---|---|---|
+| Admin | admin | admin123 |
+| Receptionist | reception | rec123 |
+| Student | student123 | pass123 |
 
-> **Tip:** Click the demo credential cards on the login page to auto-fill.
+## Audit Logs Notes
 
----
+- By default, internal system events are hidden for cleaner security monitoring.
+- Enable "Show system events" only when troubleshooting.
+- Failed login attempts are intentionally logged and visible.
 
-## 🔄 How the Sync System Works
+## Troubleshooting
 
-The application uses a **dual-mode data architecture**:
+### "migrate.php shows Forbidden"
 
-1. **On login**, the front-end calls `api/sync.php` to pull all data from MySQL into localStorage.
-2. **On every add/update/delete**, the front-end updates localStorage immediately, then sends a POST to `api/data.php` to persist the change to MySQL.
-3. **If the server is unreachable**, secure login and protected API operations are unavailable until the backend is online.
+- Expected behavior in browser.
+- Run migrate.php via CLI only.
 
-Run this app behind a PHP server (XAMPP/Apache) so session-based authentication and authorization checks are enforced.
+### "phpMyAdmin looks empty"
 
----
+- Check selected database is `hostel_management`.
+- Do not inspect a different database (for example `htm`).
+- Re-run setup.php if needed.
 
-## 📸 Screenshots
+### "UI changes not visible"
 
-### Login Page
-- Split-screen layout with AVM branding
-- Animated role selector (Student / Receptionist / Owner)
-- Password visibility toggle and dark/light theme toggle
+- Hard refresh with Ctrl+F5.
+- Asset URLs are versioned in HTML.
 
-### Student Dashboard
-- Booking overview, payment history, request submission
-- Notice board, profile management, password change
+## Academic Context
 
-### Receptionist Dashboard
-- Check-in/out processing, visitor management
-- Attendance log, room status grid, student search
-
-### Owner Dashboard
-- Analytics charts (revenue, occupancy, payment status)
-- Room and student CRUD, payment tracking
-- Request approval/rejection, notice board management
-
----
-
-## 👥 Team
-
-| Member | Role | Key Contributions |
-|--------|------|-------------------|
-| Arbin Maharjan | Group Leader / Full-Stack | Login page, script.js, all PHP APIs, project coordination |
-| Prena Khadka | Front-End Developer | Student dashboard, styles.css, change password integration |
-| Swayam Shrestha | Front-End Developer | Receptionist dashboard, Chart.js analytics |
-| Saurav Niraula | UI/UX & DB Designer | Owner dashboard, database schema, data seeder |
-
----
-
-## 📝 License
-
-This project was built as part of **ICT308 Capstone Project 2** at CIHE Australia, Semester 1, 2026.
-
----
-
-## 🙏 Acknowledgements
-
-- **Lecturer:** Dr Arman Sharififar
-- **Institution:** Crown Institute of Higher Education (CIHE), Australia
-- [Chart.js](https://www.chartjs.org/) for analytics visualisations
+This project was developed for ICT capstone coursework (Semester 1, 2026).
