@@ -57,6 +57,212 @@ if ($dateTo !== null && $dateTo !== '') {
 
 $whereSql = $where ? ('WHERE ' . implode(' AND ', $where)) : '';
 
+function audit_target_fallback(?string $targetType, ?string $targetId): string {
+    $type = trim((string)$targetType);
+    $id = trim((string)$targetId);
+
+    if ($type === '' && $id === '') {
+        return '-';
+    }
+
+    $typeLabel = $type !== '' ? ucwords(str_replace(['_', '-'], ' ', $type)) : 'Target';
+    return $id !== '' ? ($typeLabel . ' #' . $id) : $typeLabel;
+}
+
+function resolve_audit_target_display(PDO $pdo, ?string $targetType, ?string $targetId): string {
+    static $cache = [];
+
+    $type = strtolower(trim((string)$targetType));
+    $id = trim((string)$targetId);
+    $cacheKey = $type . '|' . $id;
+
+    if (isset($cache[$cacheKey])) {
+        return $cache[$cacheKey];
+    }
+
+    if ($type === '' && $id === '') {
+        $cache[$cacheKey] = '-';
+        return '-';
+    }
+
+    $label = '';
+
+    try {
+        switch ($type) {
+            case 'payment':
+            case 'payments': {
+                if ($id !== '') {
+                    $stmt = $pdo->prepare('SELECT txn_id, pay_type, student_name, amount FROM payments WHERE id = ? LIMIT 1');
+                    $stmt->execute([$id]);
+                    $row = $stmt->fetch();
+                    if ($row) {
+                        $txn = trim((string)($row['txn_id'] ?? ''));
+                        $payType = trim((string)($row['pay_type'] ?? ''));
+                        $student = trim((string)($row['student_name'] ?? ''));
+                        $amount = (float)($row['amount'] ?? 0);
+                        $label = 'Payment' . ($txn !== '' ? (' ' . $txn) : (' #' . $id));
+                        if ($student !== '') $label .= ' • ' . $student;
+                        if ($payType !== '') $label .= ' • ' . $payType;
+                        if ($amount > 0) $label .= ' • Rs ' . number_format($amount, 2);
+                    }
+                }
+                break;
+            }
+
+            case 'request':
+            case 'requests': {
+                if ($id !== '') {
+                    $stmt = $pdo->prepare('SELECT r.req_type, u.name AS student_name FROM requests r LEFT JOIN users u ON u.id = r.student_id WHERE r.id = ? LIMIT 1');
+                    $stmt->execute([$id]);
+                    $row = $stmt->fetch();
+                    if ($row) {
+                        $reqType = trim((string)($row['req_type'] ?? ''));
+                        $student = trim((string)($row['student_name'] ?? ''));
+                        $label = 'Request';
+                        if ($reqType !== '') $label .= ' • ' . ucwords(str_replace(['_', '-'], ' ', $reqType));
+                        if ($student !== '') $label .= ' • ' . $student;
+                        $label .= ' • #' . $id;
+                    }
+                }
+                break;
+            }
+
+            case 'user':
+            case 'users': {
+                if ($id !== '') {
+                    $stmt = $pdo->prepare('SELECT name, username, role, student_id FROM users WHERE id = ? LIMIT 1');
+                    $stmt->execute([$id]);
+                    $row = $stmt->fetch();
+                    if ($row) {
+                        $name = trim((string)($row['name'] ?? ''));
+                        $username = trim((string)($row['username'] ?? ''));
+                        $role = trim((string)($row['role'] ?? ''));
+                        $studentId = trim((string)($row['student_id'] ?? ''));
+                        $label = 'User ' . ($name !== '' ? $name : ($username !== '' ? $username : ('#' . $id)));
+                        if ($role !== '') $label .= ' (' . $role . ')';
+                        if ($studentId !== '') $label .= ' • ' . $studentId;
+                    }
+                }
+                break;
+            }
+
+            case 'room':
+            case 'rooms': {
+                if ($id !== '') {
+                    $stmt = $pdo->prepare('SELECT number, type, floor FROM rooms WHERE id = ? LIMIT 1');
+                    $stmt->execute([$id]);
+                    $row = $stmt->fetch();
+                    if ($row) {
+                        $number = trim((string)($row['number'] ?? ''));
+                        $typeName = trim((string)($row['type'] ?? ''));
+                        $floor = trim((string)($row['floor'] ?? ''));
+                        $label = 'Room ' . ($number !== '' ? $number : ('#' . $id));
+                        if ($typeName !== '') $label .= ' • ' . $typeName;
+                        if ($floor !== '') $label .= ' • ' . $floor;
+                    }
+                }
+                break;
+            }
+
+            case 'booking':
+            case 'bookings': {
+                if ($id !== '') {
+                    $stmt = $pdo->prepare('SELECT student_name, student_sid, status FROM bookings WHERE id = ? LIMIT 1');
+                    $stmt->execute([$id]);
+                    $row = $stmt->fetch();
+                    if ($row) {
+                        $student = trim((string)($row['student_name'] ?? ''));
+                        $sid = trim((string)($row['student_sid'] ?? ''));
+                        $statusText = trim((string)($row['status'] ?? ''));
+                        $label = 'Booking #' . $id;
+                        if ($student !== '') $label .= ' • ' . $student;
+                        if ($sid !== '') $label .= ' • ' . $sid;
+                        if ($statusText !== '') $label .= ' • ' . $statusText;
+                    }
+                }
+                break;
+            }
+
+            case 'visitor':
+            case 'visitors': {
+                if ($id !== '') {
+                    $stmt = $pdo->prepare('SELECT name, purpose FROM visitors WHERE id = ? LIMIT 1');
+                    $stmt->execute([$id]);
+                    $row = $stmt->fetch();
+                    if ($row) {
+                        $name = trim((string)($row['name'] ?? ''));
+                        $purpose = trim((string)($row['purpose'] ?? ''));
+                        $label = 'Visitor ' . ($name !== '' ? $name : ('#' . $id));
+                        if ($purpose !== '') $label .= ' • ' . $purpose;
+                    }
+                }
+                break;
+            }
+
+            case 'attendance': {
+                if ($id !== '') {
+                    $stmt = $pdo->prepare('SELECT a.att_date, a.status, u.name AS student_name FROM attendance a LEFT JOIN users u ON u.id = a.student_id WHERE a.id = ? LIMIT 1');
+                    $stmt->execute([$id]);
+                    $row = $stmt->fetch();
+                    if ($row) {
+                        $date = trim((string)($row['att_date'] ?? ''));
+                        $statusText = trim((string)($row['status'] ?? ''));
+                        $student = trim((string)($row['student_name'] ?? ''));
+                        $label = 'Attendance';
+                        if ($student !== '') $label .= ' • ' . $student;
+                        if ($date !== '') $label .= ' • ' . $date;
+                        if ($statusText !== '') $label .= ' • ' . $statusText;
+                    }
+                }
+                break;
+            }
+
+            case 'notice':
+            case 'notices': {
+                if ($id !== '') {
+                    $stmt = $pdo->prepare('SELECT title FROM notices WHERE id = ? LIMIT 1');
+                    $stmt->execute([$id]);
+                    $row = $stmt->fetch();
+                    if ($row) {
+                        $title = trim((string)($row['title'] ?? ''));
+                        $label = 'Notice ' . ($title !== '' ? $title : ('#' . $id));
+                    }
+                }
+                break;
+            }
+
+            case 'outpass':
+            case 'outpasses': {
+                if ($id !== '') {
+                    $stmt = $pdo->prepare('SELECT student_name, destination, status FROM outpasses WHERE id = ? LIMIT 1');
+                    $stmt->execute([$id]);
+                    $row = $stmt->fetch();
+                    if ($row) {
+                        $student = trim((string)($row['student_name'] ?? ''));
+                        $destination = trim((string)($row['destination'] ?? ''));
+                        $statusText = trim((string)($row['status'] ?? ''));
+                        $label = 'Outpass #' . $id;
+                        if ($student !== '') $label .= ' • ' . $student;
+                        if ($destination !== '') $label .= ' • ' . $destination;
+                        if ($statusText !== '') $label .= ' • ' . $statusText;
+                    }
+                }
+                break;
+            }
+        }
+    } catch (Throwable $e) {
+        // Fall back to generic label if enrichment fails.
+    }
+
+    if ($label === '') {
+        $label = audit_target_fallback($targetType, $targetId);
+    }
+
+    $label = mb_substr($label, 0, 220);
+    $cache[$cacheKey] = $label;
+    return $label;
+}
+
 try {
     $pdo = getDB();
 
@@ -85,6 +291,11 @@ try {
     $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
     $stmt->execute();
     $logs = $stmt->fetchAll();
+
+    foreach ($logs as &$log) {
+        $log['target_display'] = resolve_audit_target_display($pdo, (string)($log['target_type'] ?? ''), (string)($log['target_id'] ?? ''));
+    }
+    unset($log);
 
     json_response([
         'success' => true,
