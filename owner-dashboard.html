@@ -3,9 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none';">
+  <meta name="theme-color" content="#4338ca">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://unpkg.com 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none';">
   <title>Aastha Vidhya Mandir – Admin Dashboard</title>
-  <link rel="stylesheet" href="styles.css?v=20260524-2">
+  <link rel="stylesheet" href="styles.css?v=20260525-1">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
@@ -130,7 +132,10 @@
         </button>
         <div class="topbar-user">
           <div class="topbar-user-avatar" id="topbarUserAvatar">A</div>
-          <div class="topbar-user-name" id="topbarUserName">Admin</div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <div class="topbar-user-name" id="topbarUserName">Admin</div>
+            <span class="badge badge-success" id="topbarTwofaBadge" style="display:none">2FA ON</span>
+          </div>
         </div>
       </div>
     </header>
@@ -142,6 +147,7 @@
         <div class="page-header">
           <div class="page-header-left"><h2>Admin Dashboard</h2><p>Hostel overview and quick actions</p></div>
           <div class="page-header-right">
+            <button class="btn btn-outline" onclick="openAdminTwofaModal()">2FA Security</button>
             <button class="btn btn-secondary" onclick="openModal('addRoomModal')">Add Room</button>
             <button class="btn btn-primary" onclick="openModal('addStudentModal')">
               <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
@@ -174,6 +180,14 @@
           <div class="stat-card">
             <div class="stat-icon cyan"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg></div>
             <div class="stat-body"><div class="stat-value" id="statPendingPay">₹0</div><div class="stat-label">Pending Payments</div></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon red"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
+            <div class="stat-body"><div class="stat-value" id="statDuesAging">₹0</div><div class="stat-label">Dues Aging (30+ Days)</div></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon blue"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 4v-4z"/></svg></div>
+            <div class="stat-body"><div class="stat-value" id="statComplaintSla">-</div><div class="stat-label">Avg Complaint SLA</div></div>
           </div>
         </div>
 
@@ -693,6 +707,49 @@
   </div>
 </div>
 
+<!-- Admin 2FA Management -->
+<div class="modal-overlay" id="adminTwofaModal">
+  <div class="modal" style="max-width:620px">
+    <div class="modal-header"><div class="modal-title">Admin Two-Factor Authentication</div><button class="modal-close" onclick="closeModal('adminTwofaModal')"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button></div>
+    <div class="modal-body">
+      <div id="twofaStatusMsg" style="padding:12px;border-radius:8px;background:var(--surface-2);font-size:14px;line-height:1.6;margin-bottom:14px">Checking 2FA status...</div>
+
+      <div id="twofaSetupBlock" style="display:none; border-top:1px solid var(--border); padding-top:14px; margin-top:14px;">
+        <div class="form-group-d">
+          <label class="form-label-d">Scan QR</label>
+          <div id="twofaQrWrap" style="display:flex;justify-content:center;padding:10px;border:1px dashed var(--border);border-radius:10px;background:var(--surface-2)">
+            <canvas id="twofaQrCanvas" width="180" height="180" aria-label="2FA QR"></canvas>
+          </div>
+        </div>
+        <div class="form-group-d"><label class="form-label-d">Setup Secret</label><input class="input" id="twofaSecret" readonly></div>
+        <div class="form-group-d"><label class="form-label-d">Setup URI (for QR generators)</label><textarea class="input" id="twofaUri" rows="3" readonly></textarea></div>
+        <div class="form-group-d"><label class="form-label-d">Verify Code</label><input class="input" id="twofaSetupOtp" inputmode="numeric" maxlength="6" placeholder="Enter 6-digit code from app"></div>
+      </div>
+
+      <div id="twofaRecoveryBlock" style="display:none; border-top:1px solid var(--border); padding-top:14px; margin-top:14px;">
+        <div id="twofaRecoveryMsg" style="font-size:13px;color:var(--text-2);margin-bottom:8px"></div>
+        <div id="twofaRecoveryCodes" style="display:none;white-space:pre-wrap;font-family:ui-monospace,Consolas,'Courier New',monospace;font-size:13px;line-height:1.6;padding:12px;background:var(--surface-2);border:1px solid var(--border);border-radius:8px"></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+          <button class="btn btn-secondary btn-sm" id="twofaCopyRecoveryBtn" style="display:none" onclick="copyAdminRecoveryCodes()">Copy Codes</button>
+          <button class="btn btn-secondary btn-sm" id="twofaDownloadRecoveryBtn" style="display:none" onclick="downloadAdminRecoveryCodes()">Download Codes</button>
+          <button class="btn btn-outline btn-sm" id="twofaRegenRecoveryBtn" style="display:none" onclick="regenerateAdminRecoveryCodes()">Regenerate Codes</button>
+        </div>
+      </div>
+
+      <div id="twofaDisableBlock" style="display:none; border-top:1px solid var(--border); padding-top:14px; margin-top:14px;">
+        <div class="form-group-d"><label class="form-label-d">Current Authenticator Code</label><input class="input" id="twofaDisableOtp" inputmode="numeric" maxlength="6" placeholder="Enter 6-digit code to disable or regenerate backup codes"></div>
+      </div>
+    </div>
+    <div class="modal-footer" style="gap:8px;flex-wrap:wrap">
+      <button class="btn btn-secondary" onclick="closeModal('adminTwofaModal')">Close</button>
+      <button class="btn btn-secondary" id="twofaCancelSetupBtn" style="display:none" onclick="cancelAdminTwofaSetup()">Cancel Setup</button>
+      <button class="btn btn-primary" id="twofaBeginBtn" onclick="beginAdminTwofaSetup()">Begin Setup</button>
+      <button class="btn btn-success" id="twofaConfirmBtn" style="display:none" onclick="confirmAdminTwofaSetup()">Enable 2FA</button>
+      <button class="btn btn-danger" id="twofaDisableBtn" style="display:none" onclick="disableAdminTwofa()">Disable 2FA</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="logoutConfirmModal">
   <div class="modal modal-sm">
     <div class="modal-header">
@@ -709,7 +766,8 @@
   </div>
 </div>
 <div class="notifications-container"></div>
-<script src="script.js?v=20260524-2"></script>
+<script src="assets/vendor/qrcode.min.js?v=20260525-1"></script>
+<script src="script.js?v=20260525-2"></script>
 <script>
   initAdminDashboard();
 
