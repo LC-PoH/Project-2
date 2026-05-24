@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Aastha Vidhya Mandir – Admin Dashboard</title>
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=20260524-2">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
@@ -42,6 +42,10 @@
       <button class="nav-item" data-page="payments-admin" data-title="Payments" onclick="showPage('payments-admin')">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
         Payments
+      </button>
+      <button class="nav-item" data-page="audit-logs" data-title="Audit Logs" onclick="showPage('audit-logs')">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        Audit Logs
       </button>
       <button class="nav-item" data-page="requests-admin" data-title="Requests" onclick="showPage('requests-admin')">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
@@ -135,6 +139,22 @@
           <div class="stat-card">
             <div class="stat-icon cyan"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg></div>
             <div class="stat-body"><div class="stat-value" id="statPendingPay">₹0</div><div class="stat-label">Pending Payments</div></div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:20px">
+          <div class="card-header">
+            <div class="card-title">DB Health</div>
+            <button class="btn btn-sm btn-secondary" onclick="renderDbHealth()">Refresh</button>
+          </div>
+          <div class="card-body">
+            <div class="stats-grid" style="margin-bottom:8px">
+              <div class="stat-card"><div class="stat-body"><div class="stat-value" id="dbUsersCount">0</div><div class="stat-label">Users</div></div></div>
+              <div class="stat-card"><div class="stat-body"><div class="stat-value" id="dbPaymentsCount">0</div><div class="stat-label">Payments</div></div></div>
+              <div class="stat-card"><div class="stat-body"><div class="stat-value" id="dbAuditCount">0</div><div class="stat-label">Audit Events</div></div></div>
+              <div class="stat-card"><div class="stat-body"><div class="stat-value" id="dbAttendanceCount">0</div><div class="stat-label">Attendance</div></div></div>
+            </div>
+            <div class="text-muted text-sm" id="dbHealthMeta">Loading database health...</div>
           </div>
         </div>
 
@@ -325,6 +345,98 @@
                 <thead><tr><th>ID</th><th>Student</th><th>Type</th><th>Description</th><th>Date</th><th>Status</th><th>Actions</th></tr></thead>
                 <tbody id="requestsAdminBody"></tbody>
               </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== AUDIT LOGS ===== -->
+      <div class="page" id="audit-logs">
+        <div class="page-header">
+          <div class="page-header-left"><h2>Audit Logs</h2><p>Monitor sensitive actions and suspicious behavior</p></div>
+          <div class="page-header-right">
+            <label class="filter-label" style="display:flex;align-items:center;gap:8px;margin:0 6px 0 0;cursor:pointer">
+              <input type="checkbox" id="auditIncludeSystem" onchange="applyAuditFilters()">
+              Show system events
+            </label>
+            <label class="filter-label" style="display:flex;align-items:center;gap:8px;margin:0 6px 0 0;cursor:pointer">
+              <input type="checkbox" id="auditAutoRefreshToggle" onchange="toggleAuditAutoRefresh()">
+              Auto Refresh
+            </label>
+            <button class="btn btn-secondary" onclick="exportAuditCsv()">Export CSV</button>
+            <button class="btn btn-secondary" onclick="clearAuditFilters()">Reset Filters</button>
+            <button class="btn btn-primary" onclick="renderAuditLogs(1)">Refresh</button>
+          </div>
+        </div>
+        <div class="stats-grid" style="margin-bottom:16px">
+          <div class="stat-card">
+            <div class="stat-icon red"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg></div>
+            <div class="stat-body"><div class="stat-value" id="auditFailed24h">0</div><div class="stat-label">Failed Events (24h)</div></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon orange"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg></div>
+            <div class="stat-body"><div class="stat-value" id="auditHighRisk24h">0</div><div class="stat-label">High-Risk Events (24h)</div></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon purple"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A9 9 0 1112 21a8.96 8.96 0 01-6.879-3.196z"/></svg></div>
+            <div class="stat-body"><div class="stat-value" id="auditTopIp">-</div><div class="stat-label">Top Suspicious IP</div></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon cyan"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5V4H2v16h5m10 0v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4m10 0H7"/></svg></div>
+            <div class="stat-body"><div class="stat-value" id="auditTopActor">-</div><div class="stat-label">Top Actor (24h)</div></div>
+          </div>
+        </div>
+        <div class="text-muted text-sm" id="auditDbHealthMeta" style="margin:-4px 0 12px 2px">Database health unavailable</div>
+        <div class="card">
+          <div class="card-header">
+            <div class="filter-bar" style="margin:0;flex:1">
+              <div class="search-box" style="max-width:280px">
+                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                <input type="text" id="auditSearch" placeholder="Search details, actor, target" oninput="applyAuditFilters()">
+              </div>
+              <select class="filter-select" id="auditActionFilter" onchange="applyAuditFilters()">
+                <option value="">All Actions</option>
+                <option value="login">login</option>
+                <option value="logout">logout</option>
+                <option value="data_add">data_add</option>
+                <option value="data_update">data_update</option>
+                <option value="data_remove">data_remove</option>
+                <option value="password_change">password_change</option>
+                <option value="payment_submit">payment_submit</option>
+              </select>
+              <select class="filter-select" id="auditStatusFilter" onchange="applyAuditFilters()">
+                <option value="">All Status</option>
+                <option value="success">success</option>
+                <option value="failed">failed</option>
+              </select>
+              <select class="filter-select" id="auditRoleFilter" onchange="applyAuditFilters()">
+                <option value="">All Roles</option>
+                <option value="admin">admin</option>
+                <option value="receptionist">receptionist</option>
+                <option value="student">student</option>
+              </select>
+              <div class="date-range-wrap">
+                <span class="dr-icon"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></span>
+                <input type="date" id="auditDateFrom" onchange="applyAuditFilters()">
+                <span class="date-range-sep">→</span>
+                <input type="date" id="auditDateTo" onchange="applyAuditFilters()">
+                <button class="dr-clear" onclick="clearAuditFilters()" title="Clear dates">×</button>
+              </div>
+            </div>
+          </div>
+          <div class="card-body" style="padding:0">
+            <div class="table-wrapper">
+              <table>
+                <thead><tr><th>Time</th><th>Action</th><th>Status</th><th>Actor</th><th>Target</th><th>IP</th><th>Details</th></tr></thead>
+                <tbody id="auditLogsBody"></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="card-footer" style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-top:1px solid var(--border)">
+            <div class="text-muted text-sm" id="auditPageInfo">Page 1 of 1</div>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-sm btn-secondary" id="auditPrevBtn" onclick="auditPrevPage()">Previous</button>
+              <button class="btn btn-sm btn-secondary" id="auditNextBtn" onclick="auditNextPage()">Next</button>
             </div>
           </div>
         </div>
@@ -562,7 +674,7 @@
   </div>
 </div>
 <div class="notifications-container"></div>
-<script src="script.js"></script>
+<script src="script.js?v=20260524-2"></script>
 <script>
   initAdminDashboard();
 
@@ -668,10 +780,10 @@
     tbody.innerHTML = reqs.length ? reqs.map(r => {
       const s = HMS.findById('users', r.studentId);
       return `<tr>
-        <td><div class="fw-600" style="font-size:13px">${s?.name||'-'}</div><div style="font-size:11px;color:var(--text-2)">${s?.studentId||''}</div></td>
-        <td><span class="badge badge-secondary" style="font-size:11px">${r.type||'General'}</span></td>
+        <td><div class="fw-600" style="font-size:13px">${escHtml(s?.name||'-')}</div><div style="font-size:11px;color:var(--text-2)">${escHtml(s?.studentId||'')}</div></td>
+        <td><span class="badge badge-secondary" style="font-size:11px">${escHtml(r.type||'General')}</span></td>
         <td><span class="badge badge-warning">pending</span></td>
-        <td><button class="btn btn-sm btn-primary" onclick="openAdminRespond('${r.id}')">Respond</button></td>
+        <td><button class="btn btn-sm btn-primary" onclick="openAdminRespond('${escJs(r.id)}')">Respond</button></td>
       </tr>`;
     }).join('') : '<tr><td colspan="4" class="text-center text-muted" style="padding:16px">No pending requests</td></tr>';
     const badge = document.getElementById('pendingReqBadge');
@@ -681,6 +793,9 @@
   // Sync analytics page when navigated to
   document.querySelector('[data-page="analytics"]').addEventListener('click', () => {
     setTimeout(() => { renderAdminStats(); initCharts(); }, 50);
+  });
+  document.querySelector('[data-page="dashboard"]').addEventListener('click', () => {
+    setTimeout(() => { renderAdminStats(); renderDbHealth(); }, 50);
   });
   document.querySelector('[data-page="requests-admin"]').addEventListener('click', () => {
     setTimeout(() => { renderAdminRequests(); populateQuickRequests(); }, 50);
@@ -692,6 +807,9 @@
   });
   document.querySelector('[data-page="students"]').addEventListener('click', () => {
     setTimeout(() => { renderAdminStudents(); }, 50);
+  });
+  document.querySelector('[data-page="audit-logs"]').addEventListener('click', () => {
+    setTimeout(() => { renderAuditLogs(1); }, 50);
   });
 
   populateRoomDropdowns();
