@@ -4,6 +4,80 @@
 
 const DATA_VERSION = 'v2.0';
 // Asset loading uses versioned CSS/JS URLs in HTML files.
+let deferredInstallPrompt = null;
+
+function fmtClockTime(iso) {
+  if (!iso) return '--';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '--';
+  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+function opLabel(op) {
+  const table = String(op?.table || 'data').replace(/_/g, ' ');
+  const action = String(op?.action || 'update');
+  const tableName = table.charAt(0).toUpperCase() + table.slice(1);
+  const actionName = action.charAt(0).toUpperCase() + action.slice(1);
+  return `${actionName} ${tableName}`;
+}
+
+function syncStatusClass(status) {
+  switch (status) {
+    case 'syncing': return 'syncing';
+    case 'failed': return 'failed';
+    case 'synced': return 'synced';
+    default: return 'queued';
+  }
+}
+
+function syncStatusText(status) {
+  switch (status) {
+    case 'syncing': return 'Syncing';
+    case 'failed': return 'Failed';
+    case 'synced': return 'Synced';
+    default: return 'Queued';
+  }
+}
+
+function sanitizeSyncOp(op = {}) {
+  return {
+    id: op.id || `sync_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+    table: op.table || 'data',
+    action: op.action || 'update',
+    data: sanitizePayloadDeep(op.data ?? {}),
+    queuedAt: op.queuedAt || new Date().toISOString(),
+    status: op.status || 'queued',
+    retries: Number(op.retries || 0),
+    lastError: op.lastError || '',
+    lastAttemptAt: op.lastAttemptAt || '',
+    lastSyncedAt: op.lastSyncedAt || '',
+  };
+}
+
+function openRecSyncPopover() {
+  const pop = document.getElementById('recSyncPopover');
+  if (!pop) return;
+  pop.hidden = false;
+}
+
+function closeRecSyncPopover() {
+  const pop = document.getElementById('recSyncPopover');
+  if (!pop) return;
+  pop.hidden = true;
+}
+
+function toggleRecSyncPopover(event) {
+  if (event) event.stopPropagation();
+  const pop = document.getElementById('recSyncPopover');
+  if (!pop) return;
+  pop.hidden = !pop.hidden;
+}
+
+document.addEventListener('click', (event) => {
+  const wrap = document.getElementById('recSyncWrap');
+  if (!wrap) return;
+  if (!wrap.contains(event.target)) closeRecSyncPopover();
+});
 
 // ===== THEME MANAGEMENT =====
 function initTheme() {
@@ -35,17 +109,132 @@ function initPwa() {
   navigator.serviceWorker.register('sw.js').catch(() => {
     // PWA support is optional; ignore registration failures.
   });
+
+  window.addEventListener('beforeinstallprompt', (event) => {
+    event.preventDefault();
+    deferredInstallPrompt = event;
+    const btn = ensurePwaInstallButton();
+    if (btn) btn.classList.add('show');
+  });
+
+  window.addEventListener('appinstalled', () => {
+    deferredInstallPrompt = null;
+    const btn = document.getElementById('pwaInstallBtn');
+    if (btn) btn.classList.remove('show');
+    notify('App installed successfully', 'success');
+  });
+}
+
+function ensurePwaInstallButton() {
+  const path = String(window.location.pathname || '');
+  const isDashboard = path.endsWith('/owner-dashboard.html') || path.endsWith('/receptionist-dashboard.html') || path.endsWith('/student-dashboard.html');
+  if (!isDashboard) return null;
+
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  if (isStandalone) return null;
+
+  let btn = document.getElementById('pwaInstallBtn');
+  if (btn) return btn;
+
+  btn = document.createElement('button');
+  btn.id = 'pwaInstallBtn';
+  btn.type = 'button';
+  btn.className = 'pwa-install-fab';
+  btn.textContent = 'Install App';
+  btn.addEventListener('click', async () => {
+    if (!deferredInstallPrompt) return;
+    deferredInstallPrompt.prompt();
+    const choice = await deferredInstallPrompt.userChoice.catch(() => null);
+    if (choice && choice.outcome === 'accepted') {
+      btn.classList.remove('show');
+    }
+    deferredInstallPrompt = null;
+  });
+  document.body.appendChild(btn);
+  return btn;
+}
+
+function renderPendingSyncIndicators() {
+  if (typeof HMS === 'undefined' || typeof HMS.getPendingOps !== 'function') return;
+  const pending = HMS.getPendingOps();
+  const pendingCount = pending.length;
+  const recent = typeof HMS.getRecentSyncOps === 'function' ? HMS.getRecentSyncOps() : [];
+
+  const syncBtn = document.getElementById('recPendingSyncBtn');
+  if (syncBtn) {
+    const offline = !navigator.onLine;
+    syncBtn.style.display = '';
+    syncBtn.textContent = pendingCount > 0 ? `Sync ${pendingCount}` : (offline ? 'Offline' : 'Synced');
+    syncBtn.classList.toggle('has-pending', pendingCount > 0);
+  }
+
+  const mobileBadge = document.getElementById('recMobilePendingBadge');
+  if (mobileBadge) {
+    mobileBadge.style.display = pendingCount > 0 ? '' : 'none';
+    mobileBadge.textContent = pendingCount > 99 ? '99+' : String(pendingCount);
+  }
+
+  const summary = document.getElementById('recSyncSummary');
+  if (summary) {
+    const offline = !navigator.onLine;
+    if (pendingCount > 0) {
+      summary.textContent = `${pendingCount} pending change(s). ${offline ? 'Offline mode active.' : 'Ready to sync.'}`;
+    } else {
+      summary.textContent = offline ? 'No pending changes. Offline mode active.' : 'All changes synced.';
+    }
+  }
+
+  const list = document.getElementById('recSyncStatusList');
+  if (list) {
+    const pendingRows = pending.map((op) => {
+      const when = fmtClockTime(op.lastAttemptAt || op.queuedAt);
+      const retryText = op.retries > 0 ? ` | Retry ${op.retries}` : '';
+      const errorText = op.status === 'failed' && op.lastError ? ` (${op.lastError})` : '';
+      return `
+        <div class="sync-item-row">
+          <div>
+            <div class="sync-item-title">${opLabel(op)}</div>
+            <div class="sync-item-meta">${when}${retryText}${errorText}</div>
+          </div>
+          <span class="sync-pill ${syncStatusClass(op.status)}">${syncStatusText(op.status)}</span>
+        </div>
+      `;
+    });
+
+    const recentRows = recent.map((item) => {
+      const when = fmtClockTime(item.time);
+      return `
+        <div class="sync-item-row recent">
+          <div>
+            <div class="sync-item-title">${item.label}</div>
+            <div class="sync-item-meta">${when}</div>
+          </div>
+          <span class="sync-pill synced">Synced</span>
+        </div>
+      `;
+    });
+
+    const rows = pendingRows.concat(recentRows);
+    list.innerHTML = rows.length ? rows.join('') : '<div class="sync-empty">No sync activity yet.</div>';
+  }
+
+  const syncNowBtn = document.getElementById('recSyncNowBtn');
+  if (syncNowBtn) {
+    syncNowBtn.disabled = pendingCount === 0 || !navigator.onLine;
+  }
 }
 
 // Initialize theme on page load
 document.addEventListener('DOMContentLoaded', () => {
   initTheme();
   initPwa();
+  ensurePwaInstallButton();
 });
 
 // ===== DATA STORE =====
 const HMS = {
   KEYS: { users:'hms_users', rooms:'hms_rooms', bookings:'hms_bookings', payments:'hms_payments', requests:'hms_requests', visitors:'hms_visitors', attendance:'hms_attendance', notices:'hms_notices', outpasses:'hms_outpasses' },
+  META_KEYS: { pendingOps: 'hms_pending_ops', recentSyncOps: 'hms_recent_sync_ops' },
 
   defaults: {
     users: [
@@ -187,44 +376,172 @@ const HMS = {
     }
   },
 
+  getPendingOps() {
+    return JSON.parse(localStorage.getItem(this.META_KEYS.pendingOps) || '[]').map((op) => sanitizeSyncOp(op));
+  },
+
+  setPendingOps(ops) {
+    const normalized = (Array.isArray(ops) ? ops : []).map((op) => sanitizeSyncOp(op));
+    localStorage.setItem(this.META_KEYS.pendingOps, JSON.stringify(normalized));
+    renderPendingSyncIndicators();
+  },
+
+  getRecentSyncOps() {
+    return JSON.parse(localStorage.getItem(this.META_KEYS.recentSyncOps) || '[]');
+  },
+
+  pushRecentSyncOp(item) {
+    const current = this.getRecentSyncOps();
+    const next = [item, ...current].slice(0, 8);
+    localStorage.setItem(this.META_KEYS.recentSyncOps, JSON.stringify(next));
+  },
+
+  queuePersistOperation(table, action, data, quiet = false) {
+    const ops = this.getPendingOps();
+    ops.push({
+      id: this.genId(),
+      table,
+      action,
+      data: sanitizePayloadDeep(data),
+      queuedAt: new Date().toISOString(),
+      status: 'queued',
+      retries: 0,
+      lastError: '',
+      lastAttemptAt: '',
+      lastSyncedAt: '',
+    });
+    this.setPendingOps(ops);
+
+    if (!quiet) {
+      const now = Date.now();
+      if (!this._lastQueueNoticeAt || (now - this._lastQueueNoticeAt) > 4000) {
+        notify('Offline mode: change saved locally and queued for sync.', 'warning');
+        this._lastQueueNoticeAt = now;
+      }
+    }
+  },
+
+  async sendPersistRequest(table, action, data) {
+    const res = await fetch('api/data.php', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': this.getCsrfToken() || '',
+      },
+      body: JSON.stringify({ table, action, data }),
+    });
+    const payload = await res.json().catch(() => ({}));
+    return { res, payload };
+  },
+
+  async flushPersistQueue({ silent = false, source = 'manual' } = {}) {
+    if (!navigator.onLine) return 0;
+
+    const queued = this.getPendingOps();
+    if (!queued.length) return 0;
+
+    if (!this.getCsrfToken()) {
+      await this.refreshSessionState();
+    }
+
+    let synced = 0;
+    const remaining = [];
+
+    for (const op of queued) {
+      try {
+        op.status = 'syncing';
+        op.lastAttemptAt = new Date().toISOString();
+        this.setPendingOps(queued);
+
+        let { res, payload } = await this.sendPersistRequest(op.table, op.action, op.data);
+
+        if (!res.ok && res.status === 403 && String(payload.error || '').toLowerCase().includes('csrf')) {
+          const refreshed = await this.refreshSessionState();
+          if (!refreshed) {
+            op.status = 'failed';
+            op.retries = Number(op.retries || 0) + 1;
+            op.lastError = 'Session refresh failed';
+            remaining.push(op);
+            continue;
+          }
+          ({ res, payload } = await this.sendPersistRequest(op.table, op.action, op.data));
+        }
+
+        if (!res.ok) {
+          op.status = 'failed';
+          op.retries = Number(op.retries || 0) + 1;
+          op.lastError = payload.error || `HTTP ${res.status}`;
+          remaining.push(op);
+          continue;
+        }
+
+        op.status = 'synced';
+        op.lastSyncedAt = new Date().toISOString();
+        this.pushRecentSyncOp({ label: opLabel(op), time: op.lastSyncedAt });
+        synced += 1;
+      } catch (e) {
+        op.status = 'failed';
+        op.retries = Number(op.retries || 0) + 1;
+        op.lastError = 'Network error';
+        remaining.push(op);
+      }
+    }
+
+    this.setPendingOps(remaining);
+
+    if (!silent && synced > 0) {
+      notify(`${synced} queued change(s) synced.`, 'success');
+    }
+    if (silent && synced > 0 && source === 'background') {
+      notify(`Background sync complete: ${synced} change(s) synced.`, 'success');
+    }
+    if (!silent && remaining.length > 0) {
+      notify(`${remaining.length} change(s) still pending sync.`, 'warning');
+    }
+
+    return synced;
+  },
+
   async persist(table, action, data) {
+    const payloadData = sanitizePayloadDeep(data);
+
+    if (!navigator.onLine) {
+      this.queuePersistOperation(table, action, payloadData);
+      return;
+    }
+
     try {
       if (!this.getCsrfToken()) {
         await this.refreshSessionState();
       }
 
-      const send = async () => fetch('api/data.php', {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRF-Token': this.getCsrfToken() || '',
-        },
-        body: JSON.stringify({ table, action, data }),
-      });
-
-      let res = await send();
+      let { res, payload } = await this.sendPersistRequest(table, action, payloadData);
 
       if (!res.ok && res.status === 403) {
-        const firstResult = await res.json().catch(() => ({}));
-        if ((firstResult.error || '').toLowerCase().includes('csrf')) {
+        if ((payload.error || '').toLowerCase().includes('csrf')) {
           const refreshed = await this.refreshSessionState();
           if (!refreshed) {
             notify('Session expired. Please login again.', 'error');
             return;
           }
-          res = await send();
+          ({ res, payload } = await this.sendPersistRequest(table, action, payloadData));
         } else {
-          notify(firstResult.error || 'Server rejected this change', 'error');
+          notify(payload.error || 'Server rejected this change', 'error');
           return;
         }
       }
 
       if (!res.ok) {
-        const result = await res.json().catch(() => ({}));
-        notify(result.error || 'Server rejected this change', 'error');
+        if (res.status >= 500) {
+          this.queuePersistOperation(table, action, payloadData);
+          return;
+        }
+        notify(payload.error || 'Server rejected this change', 'error');
       }
-    } catch (e) { /* offline – already saved to localStorage */ }
+    } catch (e) {
+      this.queuePersistOperation(table, action, payloadData);
+    }
   },
 
   get(key) { return JSON.parse(localStorage.getItem(this.KEYS[key]) || '[]'); },
@@ -298,6 +615,15 @@ const HMS = {
     localStorage.removeItem('hms_csrf');
   },
 };
+
+window.addEventListener('online', () => {
+  HMS.flushPersistQueue({ silent: true, source: 'background' });
+  renderPendingSyncIndicators();
+});
+
+window.addEventListener('offline', () => {
+  renderPendingSyncIndicators();
+});
 
 // ===== AUTH =====
 let loginInFlight = false;
@@ -1047,6 +1373,7 @@ async function initStudentDashboard() {
   initTopbar(session);
   initCustomFilterSelects();
   showPage('dashboard');
+  await HMS.flushPersistQueue({ silent: true });
   const synced = await HMS.syncFromDB();
   const student = HMS.findById('users', session.userId);
   if (!student) {
@@ -1744,6 +2071,7 @@ async function initAdminDashboard() {
   initTopbar(session);
   initCustomFilterSelects();
   showPage('dashboard');
+  await HMS.flushPersistQueue({ silent: true });
   await HMS.syncFromDB();
   reconcileRooms();
   renderAdminStats(); renderAdminRooms(); renderAdminStudents();
@@ -2912,6 +3240,60 @@ function initCharts() {
 }
 
 // ===== RECEPTIONIST DASHBOARD =====
+function initReceptionistMobileQuickBar() {
+  const isMobile = window.matchMedia('(max-width: 768px)').matches;
+  const existing = document.getElementById('recMobileQuickBar');
+
+  if (!isMobile) {
+    if (existing) existing.remove();
+    document.body.classList.remove('with-mobile-quickbar');
+    return;
+  }
+
+  if (existing) return;
+
+  const bar = document.createElement('div');
+  bar.id = 'recMobileQuickBar';
+  bar.className = 'rec-mobile-quickbar';
+  bar.innerHTML = `
+    <div class="rec-mobile-queue-badge" id="recMobilePendingBadge" style="display:none">0</div>
+    <button type="button" data-action="checkin">In</button>
+    <button type="button" data-action="checkout">Out</button>
+    <button type="button" data-action="visitor">Visitor</button>
+    <button type="button" data-action="outpass">Outpass</button>
+  `;
+
+  bar.addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-action]');
+    if (!btn) return;
+    const action = btn.dataset.action;
+
+    if (action === 'checkin') {
+      showPage('checkinout');
+      setTimeout(() => document.getElementById('ciStudentId')?.focus(), 90);
+      return;
+    }
+    if (action === 'checkout') {
+      showPage('checkinout');
+      setTimeout(() => document.getElementById('coStudentId')?.focus(), 90);
+      return;
+    }
+    if (action === 'visitor') {
+      openModal('visitorModal');
+      setTimeout(() => document.getElementById('visitorName')?.focus(), 90);
+      return;
+    }
+    if (action === 'outpass') {
+      openModal('issueOutpassModal');
+      setTimeout(() => document.getElementById('outpassStudent')?.focus(), 90);
+    }
+  });
+
+  document.body.appendChild(bar);
+  document.body.classList.add('with-mobile-quickbar');
+  renderPendingSyncIndicators();
+}
+
 async function initReceptionistDashboard() {
   const session = await requireAuth('receptionist');
   if (!session) return;
@@ -2919,7 +3301,11 @@ async function initReceptionistDashboard() {
   await HMS.refreshSessionState();
   initTopbar(session);
   initCustomFilterSelects();
+  initReceptionistMobileQuickBar();
+  window.addEventListener('resize', initReceptionistMobileQuickBar);
+  renderPendingSyncIndicators();
   showPage('dashboard');
+  await HMS.flushPersistQueue({ silent: true });
   await HMS.syncFromDB();
   reconcileRooms();
   renderReceptionistStats(); renderStudentsList(); renderRoomsList();
