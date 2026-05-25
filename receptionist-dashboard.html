@@ -7,7 +7,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none';">
   <title>Aastha Vidhya Mandir – Receptionist Dashboard</title>
-  <link rel="stylesheet" href="styles.css?v=20260525-4">
+  <link rel="stylesheet" href="styles.css?v=20260525-8">
 </head>
 <body>
 <div class="dashboard-layout">
@@ -146,6 +146,20 @@
         <button class="topbar-btn" id="themeToggleBtn" onclick="toggleTheme()" title="Toggle dark/light mode">
           <svg fill="currentColor" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
         </button>
+        <div class="sync-popover-wrap" id="recSyncWrap">
+          <button class="topbar-btn topbar-sync-btn" id="recPendingSyncBtn" onclick="toggleRecSyncPopover(event)" title="View sync status">Synced</button>
+          <div class="sync-popover" id="recSyncPopover" hidden>
+            <div class="sync-popover-head">
+              <strong>Sync Status</strong>
+              <button type="button" class="sync-popover-close" onclick="closeRecSyncPopover()" aria-label="Close sync panel">x</button>
+            </div>
+            <div class="sync-popover-sub" id="recSyncSummary">No pending changes.</div>
+            <div class="sync-popover-list" id="recSyncStatusList"></div>
+            <div class="sync-popover-foot">
+              <button type="button" class="btn btn-primary" id="recSyncNowBtn" onclick="HMS.flushPersistQueue({ source: 'manual' })">Sync Now</button>
+            </div>
+          </div>
+        </div>
         <button class="topbar-btn" onclick="openModal('visitorModal')" title="Register visitor">
           <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
         </button>
@@ -246,7 +260,7 @@
           <div class="card">
             <div class="card-header"><div class="card-title">Today's Attendance</div><button class="btn btn-sm btn-secondary" onclick="showPage('attendance')">View All</button></div>
             <div class="card-body" style="padding:0">
-              <div class="table-wrapper">
+              <div class="table-wrapper compact-scroll-rows">
                 <table>
                   <thead><tr><th>Student</th><th>Room</th><th>Check-In</th><th>Check-Out</th><th>Status</th></tr></thead>
                   <tbody id="attendanceBody"></tbody>
@@ -257,7 +271,7 @@
           <div class="card">
             <div class="card-header"><div class="card-title">Pending Requests</div><button class="btn btn-sm btn-primary" onclick="showPage('requests-rec')">Manage</button></div>
             <div class="card-body" style="padding:0">
-              <div class="table-wrapper">
+              <div class="table-wrapper compact-scroll-rows">
                 <table>
                   <thead><tr><th>Student</th><th>Type</th><th class="action-col">Action</th></tr></thead>
                   <tbody id="dashPendingRequestsBody"></tbody>
@@ -270,7 +284,7 @@
           <div class="card">
             <div class="card-header"><div class="card-title">Active Visitors</div><button class="btn btn-sm btn-primary" onclick="openModal('visitorModal')">Register</button></div>
             <div class="card-body" style="padding:0">
-              <div class="table-wrapper">
+              <div class="table-wrapper compact-scroll-rows">
                 <table>
                   <thead><tr><th>Visitor</th><th>For Student</th><th>Time In</th><th class="action-col">Action</th></tr></thead>
                   <tbody id="activeVisitorsBody"></tbody>
@@ -281,7 +295,7 @@
           <div class="card">
             <div class="card-header"><div class="card-title">Active Outpasses</div><button class="btn btn-sm btn-primary" onclick="showPage('outpass')">View All</button></div>
             <div class="card-body" style="padding:0">
-              <div class="table-wrapper">
+              <div class="table-wrapper compact-scroll-rows">
                 <table>
                   <thead><tr><th>Student</th><th>Reason</th><th>Expected Return</th><th class="action-col">Action</th></tr></thead>
                   <tbody id="dashOutpassBody"></tbody>
@@ -966,7 +980,7 @@
   </div>
 </div>
 <div class="notifications-container"></div>
-<script src="script.js?v=20260525-4"></script>
+<script src="script.js?v=20260525-8"></script>
 <script>
   // ===== RECEPTIONIST SORT FUNCTIONS =====
   function sortRecStudents(col) {
