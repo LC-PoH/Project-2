@@ -7,7 +7,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none';">
   <title>Aastha Vidhya Mandir – Login</title>
-  <link rel="stylesheet" href="styles.css?v=20260525-4">
+  <link rel="stylesheet" href="styles.css?v=20260525-5">
 </head>
 <body>
 <div class="login-page animate-gradient">
@@ -153,13 +153,13 @@
 </div>
 
 <div class="notifications-container"></div>
-<script src="script.js?v=20260525-4"></script>
+<script src="script.js?v=20260525-5"></script>
 <script>
   (function() {
     // Recovery path for rare cache/cdn race issues where script.js fails to initialize.
     if (typeof window.handleLogin === 'function') return;
     var s = document.createElement('script');
-    s.src = 'script.js?v=20260525-4&retry=' + Date.now();
+    s.src = 'script.js?v=20260525-5&retry=' + Date.now();
     document.body.appendChild(s);
   })();
 </script>
