@@ -602,6 +602,152 @@ function showPage(pageId) {
   if (window.innerWidth <= 768) closeMobileSidebar();
 }
 
+function closeCustomFilterSelects(except) {
+  document.querySelectorAll('.custom-select.open').forEach((el) => {
+    if (except && el === except) return;
+    el.classList.remove('open');
+    const trigger = el.querySelector('.custom-select-trigger');
+    if (trigger) trigger.setAttribute('aria-expanded', 'false');
+  });
+}
+
+function buildCustomFilterSelect(select) {
+  if (!select || select.dataset.customSelectInit === '1') return;
+  select.dataset.customSelectInit = '1';
+
+  const wrapper = document.createElement('div');
+  wrapper.className = 'custom-select';
+
+  const parent = select.parentNode;
+  if (!parent) return;
+  parent.insertBefore(wrapper, select);
+  wrapper.appendChild(select);
+
+  select.classList.add('custom-select-native');
+
+  const trigger = document.createElement('button');
+  trigger.type = 'button';
+  trigger.className = 'custom-select-trigger';
+  trigger.setAttribute('aria-haspopup', 'listbox');
+  trigger.setAttribute('aria-expanded', 'false');
+
+  const triggerLabel = document.createElement('span');
+  triggerLabel.className = 'custom-select-label';
+  trigger.appendChild(triggerLabel);
+
+  const menu = document.createElement('div');
+  menu.className = 'custom-select-menu';
+  menu.setAttribute('role', 'listbox');
+
+  wrapper.appendChild(trigger);
+  wrapper.appendChild(menu);
+
+  const syncFromNative = () => {
+    const selected = select.options[select.selectedIndex];
+    triggerLabel.textContent = selected ? selected.textContent : 'Select';
+
+    menu.querySelectorAll('.custom-select-option').forEach((btn) => {
+      btn.classList.toggle('active', btn.dataset.value === select.value);
+      btn.setAttribute('aria-selected', btn.dataset.value === select.value ? 'true' : 'false');
+    });
+  };
+
+  const renderOptions = () => {
+    menu.innerHTML = '';
+    Array.from(select.options).forEach((opt) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'custom-select-option';
+      btn.textContent = opt.textContent || '';
+      btn.dataset.value = opt.value;
+      btn.setAttribute('role', 'option');
+      btn.setAttribute('aria-selected', 'false');
+
+      if (opt.disabled) {
+        btn.disabled = true;
+        btn.classList.add('disabled');
+      }
+
+      btn.addEventListener('click', () => {
+        if (opt.disabled) return;
+        if (select.value !== opt.value) {
+          select.value = opt.value;
+          select.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        syncFromNative();
+        closeCustomFilterSelects();
+      });
+
+      menu.appendChild(btn);
+    });
+    syncFromNative();
+  };
+
+  trigger.addEventListener('click', () => {
+    const willOpen = !wrapper.classList.contains('open');
+    closeCustomFilterSelects(wrapper);
+    wrapper.classList.toggle('open', willOpen);
+    trigger.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+  });
+
+  trigger.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowDown' || e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      if (!wrapper.classList.contains('open')) {
+        closeCustomFilterSelects(wrapper);
+        wrapper.classList.add('open');
+        trigger.setAttribute('aria-expanded', 'true');
+      }
+      const active = menu.querySelector('.custom-select-option.active') || menu.querySelector('.custom-select-option:not(.disabled)');
+      if (active) active.focus();
+    }
+  });
+
+  menu.addEventListener('keydown', (e) => {
+    const options = Array.from(menu.querySelectorAll('.custom-select-option:not(.disabled)'));
+    if (!options.length) return;
+    const idx = options.indexOf(document.activeElement);
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      const next = options[Math.min(options.length - 1, idx + 1)] || options[0];
+      next.focus();
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      const prev = options[Math.max(0, idx - 1)] || options[0];
+      prev.focus();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      closeCustomFilterSelects();
+      trigger.focus();
+    }
+  });
+
+  select.addEventListener('change', syncFromNative);
+
+  const observer = new MutationObserver(() => renderOptions());
+  observer.observe(select, { childList: true, subtree: true, attributes: true, attributeFilter: ['disabled', 'label', 'selected', 'value'] });
+
+  renderOptions();
+}
+
+function initCustomFilterSelects(root = document) {
+  const host = root && root.querySelectorAll ? root : document;
+  host.querySelectorAll('select.filter-select').forEach((sel) => buildCustomFilterSelect(sel));
+}
+
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.custom-select')) {
+    closeCustomFilterSelects();
+  }
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    closeCustomFilterSelects();
+  }
+});
+
 function initTopbar(session) {
   document.getElementById('topbarUserName').textContent = session.name.split(' ')[0];
   document.getElementById('topbarUserAvatar').textContent = session.name[0];
@@ -899,6 +1045,7 @@ async function initStudentDashboard() {
   initSidebarUI();
   await HMS.refreshSessionState();
   initTopbar(session);
+  initCustomFilterSelects();
   showPage('dashboard');
   const synced = await HMS.syncFromDB();
   const student = HMS.findById('users', session.userId);
@@ -1595,6 +1742,7 @@ async function initAdminDashboard() {
   initSidebarUI();
   await HMS.refreshSessionState();
   initTopbar(session);
+  initCustomFilterSelects();
   showPage('dashboard');
   await HMS.syncFromDB();
   reconcileRooms();
@@ -1960,19 +2108,49 @@ async function disableAdminTwofa() {
 function renderAdminStats() {
   const rooms = HMS.get('rooms');
   const students = HMS.where('users', u => u.role === 'student');
+  const requestsAll = HMS.get('requests') || [];
   const payments = HMS.get('payments');
   const requests = HMS.where('requests', r => r.status === 'pending');
   const curMonth = new Date().toISOString().slice(0, 7); // e.g. "2026-05"
   const monthlyRev = payments.filter(p => p.status==='paid' && p.date?.startsWith(curMonth)).reduce((s,p) => s+p.amount, 0);
   const occupied = rooms.filter(r => r.status === 'occupied' || r.status === 'partial').length;
+  const pendingPayAmt = payments.filter(p=>p.status==='pending').reduce((s,p)=>s+p.amount,0);
+
+  const totalBeds = rooms.reduce((sum, room) => sum + (Number(room.beds) || 0), 0);
+  const occupiedBeds = students.filter(s => !!s.roomId).length;
+  const occupancyPct = totalBeds > 0 ? Math.round((occupiedBeds / totalBeds) * 100) : 0;
+
+  const openIssues = requestsAll.filter(r => {
+    const status = String(r.status || '').toLowerCase();
+    return !status || status === 'pending';
+  });
+  const issueTypeCount = openIssues.reduce((map, r) => {
+    const type = String(r.type || 'General').trim() || 'General';
+    map[type] = (map[type] || 0) + 1;
+    return map;
+  }, {});
+  let topIssueLabel = 'No open issues';
+  let topIssueCount = 0;
+  Object.entries(issueTypeCount).forEach(([type, count]) => {
+    if (count > topIssueCount) {
+      topIssueLabel = type;
+      topIssueCount = count;
+    }
+  });
 
   set('statTotalRooms', rooms.length);
   set('statOccupied', `${occupied}/${rooms.length}`);
   set('statStudents', students.length);
   set('statMonthRevenue', fmtCurrency(monthlyRev));
   set('statPendingReqs', requests.length);
-  const pendingPayAmt = payments.filter(p=>p.status==='pending').reduce((s,p)=>s+p.amount,0);
   set('statPendingPay', fmtCurrency(pendingPayAmt));
+
+  // Demo-ready owner KPI strip
+  set('ownerKpiCollected', fmtCurrency(monthlyRev));
+  set('ownerKpiPendingDues', fmtCurrency(pendingPayAmt));
+  set('ownerKpiOccupancyPct', `${occupancyPct}%`);
+  set('ownerKpiTopIssue', topIssueCount > 0 ? `${topIssueLabel} (${topIssueCount})` : topIssueLabel);
+  set('ownerKpiUpdatedAt', `Updated ${new Date().toLocaleString('en-IN', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' })}`);
 
   // Sales-oriented KPIs: aged dues and complaint resolution SLA.
   const nowTs = Date.now();
@@ -2010,6 +2188,59 @@ function renderAdminStats() {
   set('statMonthRevenue2', fmtCurrency(monthlyRev));
   set('statOccupied2', `${occupied}/${rooms.length}`);
   set('statStudents2', students.length);
+}
+
+function printOwnerMonthlyReport() {
+  const monthName = new Date().toLocaleString('en-IN', { month: 'long', year: 'numeric' });
+  const collected = document.getElementById('ownerKpiCollected')?.textContent || '₹0';
+  const dues = document.getElementById('ownerKpiPendingDues')?.textContent || '₹0';
+  const occupancy = document.getElementById('ownerKpiOccupancyPct')?.textContent || '0%';
+  const issue = document.getElementById('ownerKpiTopIssue')?.textContent || 'No open issues';
+
+  const reportHtml = `<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>AVM Monthly Owner Report</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 24px; color: #111827; }
+    .header { border-bottom: 2px solid #4f46e5; padding-bottom: 12px; margin-bottom: 16px; }
+    .title { font-size: 22px; font-weight: 700; }
+    .sub { color: #6b7280; margin-top: 4px; }
+    .meta { margin-top: 8px; font-size: 13px; color: #374151; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
+    .card { border: 1px solid #d1d5db; border-radius: 10px; padding: 12px; }
+    .label { font-size: 12px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.4px; }
+    .value { font-size: 20px; font-weight: 700; margin-top: 6px; }
+    .footer { margin-top: 22px; font-size: 12px; color: #6b7280; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="title">AVM Hostel - Monthly Owner Report</div>
+    <div class="sub">Business snapshot for ${monthName}</div>
+    <div class="meta">Generated: ${new Date().toLocaleString('en-IN')}</div>
+  </div>
+  <div class="grid">
+    <div class="card"><div class="label">Collected This Month</div><div class="value">${collected}</div></div>
+    <div class="card"><div class="label">Pending Dues</div><div class="value">${dues}</div></div>
+    <div class="card"><div class="label">Occupancy</div><div class="value">${occupancy}</div></div>
+    <div class="card"><div class="label">Top Issue</div><div class="value">${issue}</div></div>
+  </div>
+  <div class="footer">Tip: use browser Save as PDF in the print dialog for a shareable report.</div>
+</body>
+</html>`;
+
+  const w = window.open('', '_blank', 'width=900,height=700');
+  if (!w) {
+    notify('Popup blocked. Please allow popups to print report.', 'warning');
+    return;
+  }
+  w.document.open();
+  w.document.write(reportHtml);
+  w.document.close();
+  w.focus();
+  setTimeout(() => w.print(), 250);
 }
 
 function renderAdminRooms() {
@@ -2687,6 +2918,7 @@ async function initReceptionistDashboard() {
   initSidebarUI();
   await HMS.refreshSessionState();
   initTopbar(session);
+  initCustomFilterSelects();
   showPage('dashboard');
   await HMS.syncFromDB();
   reconcileRooms();
