@@ -925,6 +925,9 @@ function showPage(pageId) {
     if (toggle) toggle.checked = true;
     toggleAuditAutoRefresh();
   }
+  if (pageId === 'notices-admin') {
+    renderReminderQueue();
+  }
   if (window.innerWidth <= 768) closeMobileSidebar();
 }
 
@@ -1730,6 +1733,8 @@ const adminAuditState = {
   lastRefreshAt: '',
 };
 
+let ownerProKpiReport = null;
+
 function isAuditPageVisible() {
   return !!document.getElementById('audit-logs')?.classList.contains('active');
 }
@@ -2078,6 +2083,8 @@ async function initAdminDashboard() {
   renderAdminRequests(); renderAdminPayments(); renderAdminActivity();
   renderNoticesAdmin(); populateRoomDropdowns();
   renderDbHealth();
+  renderReminderQueue();
+  await renderOwnerProMetrics();
   loadAdminTwofaStatus(true);
   setTimeout(initCharts, 100);
 }
@@ -2516,6 +2523,335 @@ function renderAdminStats() {
   set('statMonthRevenue2', fmtCurrency(monthlyRev));
   set('statOccupied2', `${occupied}/${rooms.length}`);
   set('statStudents2', students.length);
+
+  // Keep owner pro metrics fresh after local CRUD actions.
+  renderOwnerProMetrics();
+}
+
+function safePct(part, whole) {
+  if (!whole || whole <= 0) return '0%';
+  return `${((part / whole) * 100).toFixed(1)}%`;
+}
+
+function buildLocalOwnerProReport() {
+  const payments = HMS.get('payments') || [];
+  const rooms = HMS.get('rooms') || [];
+  const requests = HMS.get('requests') || [];
+  const students = HMS.where('users', u => u.role === 'student' && (u.status || 'active') === 'active');
+
+  const now = new Date();
+  const monthKey = now.toISOString().slice(0, 7);
+
+  const monthPaid = payments
+    .filter(p => p.status === 'paid' && String(p.date || '').startsWith(monthKey))
+    .reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+
+  const monthPending = payments
+    .filter(p => p.status === 'pending' && String(p.date || '').startsWith(monthKey))
+    .reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+
+  const monthDueTotal = monthPaid + monthPending;
+  const collectionRatePct = monthDueTotal > 0 ? Number(((monthPaid / monthDueTotal) * 100).toFixed(1)) : 0;
+
+  const totalBeds = rooms.reduce((sum, r) => sum + (Number(r.beds) || 0), 0);
+  const occupiedBeds = students.filter(s => !!s.roomId).length;
+  const occupancyPct = totalBeds > 0 ? Number(((occupiedBeds / totalBeds) * 100).toFixed(1)) : 0;
+
+  const msPerDay = 24 * 60 * 60 * 1000;
+  const todayTs = Date.now();
+  const buckets = [
+    { label: '0-30 days', amount: 0 },
+    { label: '31-60 days', amount: 0 },
+    { label: '61-90 days', amount: 0 },
+    { label: '90+ days', amount: 0 },
+  ];
+
+  const pendingRows = payments.filter(p => p.status === 'pending' && p.date);
+  pendingRows.forEach((p) => {
+    const ts = new Date(p.date).getTime();
+    if (!Number.isFinite(ts)) return;
+    const age = Math.floor((todayTs - ts) / msPerDay);
+    const amount = Number(p.amount) || 0;
+    if (age <= 30) buckets[0].amount += amount;
+    else if (age <= 60) buckets[1].amount += amount;
+    else if (age <= 90) buckets[2].amount += amount;
+    else buckets[3].amount += amount;
+  });
+
+  const avgComplaintSlaHours = (() => {
+    const closed = requests.filter(r => ['resolved', 'approved', 'rejected'].includes(String(r.status || '').toLowerCase()) && r.date && r.resolvedAt);
+    if (!closed.length) return 0;
+    const total = closed.reduce((sum, r) => {
+      const created = new Date(r.date).getTime();
+      const resolved = new Date(r.resolvedAt).getTime();
+      if (!Number.isFinite(created) || !Number.isFinite(resolved) || resolved < created) return sum;
+      return sum + ((resolved - created) / (1000 * 60 * 60));
+    }, 0);
+    return Number((total / closed.length).toFixed(1));
+  })();
+
+  const openRequests = requests.filter(r => String(r.status || 'pending').toLowerCase() === 'pending').length;
+
+  const topIssuesMap = {};
+  requests
+    .filter(r => String(r.status || 'pending').toLowerCase() === 'pending')
+    .forEach((r) => {
+      const key = String(r.type || 'General').trim() || 'General';
+      topIssuesMap[key] = (topIssuesMap[key] || 0) + 1;
+    });
+  const topIssues = Object.entries(topIssuesMap)
+    .map(([issue, count]) => ({ issue, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5);
+
+  const methodMap = {};
+  payments
+    .filter(p => p.status === 'paid' && String(p.date || '').startsWith(monthKey))
+    .forEach((p) => {
+      const method = String(p.method || '').trim() || 'Unknown';
+      if (!methodMap[method]) methodMap[method] = { method, txCount: 0, amount: 0 };
+      methodMap[method].txCount += 1;
+      methodMap[method].amount += Number(p.amount) || 0;
+    });
+  const paymentMethods = Object.values(methodMap).sort((a, b) => b.amount - a.amount);
+
+  const revenueTrend = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const mk = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const amount = payments
+      .filter(p => p.status === 'paid' && String(p.date || '').startsWith(mk))
+      .reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+    revenueTrend.push({ month: mk, amount });
+  }
+
+  return {
+    monthStart: `${monthKey}-01`,
+    monthCollected: monthPaid,
+    monthPending,
+    monthDueTotal,
+    collectionRatePct,
+    pendingTotal: pendingRows.reduce((sum, p) => sum + (Number(p.amount) || 0), 0),
+    occupancy: { totalBeds, occupiedBeds, occupancyPct },
+    duesAging: buckets,
+    complaints: { avgSlaHours: avgComplaintSlaHours, openRequests, topIssues },
+    paymentMethods,
+    revenueTrend,
+    generatedAt: new Date().toISOString(),
+  };
+}
+
+function renderOwnerProMetricsFromReport(report) {
+  if (!report) return;
+
+  ownerProKpiReport = report;
+  const setText = (id, value) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value;
+  };
+
+  const criticalBucket = (report.duesAging || []).find((b) => b.label === '90+ days');
+  setText('proCollectionRate', `${Number(report.collectionRatePct || 0).toFixed(1)}%`);
+  setText('proMonthDueTotal', fmtCurrency(report.monthDueTotal || 0));
+  setText('proAging90Plus', fmtCurrency(criticalBucket?.amount || 0));
+  setText('proComplaintSla', report.complaints?.avgSlaHours ? `${Number(report.complaints.avgSlaHours).toFixed(1)}h` : '-');
+
+  // Mirror key Pro KPI values on Dashboard for immediate owner visibility.
+  setText('dashboardProCollectionRate', `${Number(report.collectionRatePct || 0).toFixed(1)}%`);
+  setText('dashboardProCriticalDues', fmtCurrency(criticalBucket?.amount || 0));
+  setText('dashboardProComplaintSla', report.complaints?.avgSlaHours ? `${Number(report.complaints.avgSlaHours).toFixed(1)}h` : '-');
+  setText('dashboardProOpenRequests', String(Number(report.complaints?.openRequests || 0)));
+
+  const generatedLabel = report.generatedAt
+    ? `Updated ${fmtDateTime(report.generatedAt)}`
+    : `Updated ${new Date().toLocaleString('en-IN')}`;
+  setText('ownerProGeneratedAt', generatedLabel);
+
+  const trend = Array.isArray(report.revenueTrend) ? report.revenueTrend : [];
+  const trendTotal = trend.reduce((sum, row) => sum + (Number(row.amount) || 0), 0);
+  const avgMonthly = trend.length ? trendTotal / trend.length : 0;
+  setText('proRevenueTrendSummary', `6-month total: ${fmtCurrency(trendTotal)} | Avg/month: ${fmtCurrency(avgMonthly)}`);
+
+  const trendWrap = document.getElementById('proRevenueTrendList');
+  if (trendWrap) {
+    trendWrap.innerHTML = trend.length
+      ? trend.map((row) => `<div class="info-row"><span class="info-label">${escHtml(row.month || '-')}</span><span class="info-value">${escHtml(fmtCurrency(row.amount || 0))}</span></div>`).join('')
+      : '<div class="text-muted text-sm">No trend data available</div>';
+  }
+
+  const totalPending = Number(report.pendingTotal || 0);
+  const agingBody = document.getElementById('proDuesAgingBody');
+  if (agingBody) {
+    const rows = Array.isArray(report.duesAging) ? report.duesAging : [];
+    agingBody.innerHTML = rows.length
+      ? rows.map((row) => {
+          const amount = Number(row.amount || 0);
+          return `<tr><td>${escHtml(row.label || '-')}</td><td>${escHtml(fmtCurrency(amount))}</td><td>${escHtml(safePct(amount, totalPending))}</td></tr>`;
+        }).join('')
+      : '<tr><td colspan="3" class="text-center text-muted" style="padding:16px">No aging data</td></tr>';
+  }
+
+  const methodBody = document.getElementById('proMethodPerfBody');
+  if (methodBody) {
+    const methods = Array.isArray(report.paymentMethods) ? report.paymentMethods : [];
+    methodBody.innerHTML = methods.length
+      ? methods.map((row) => `<tr><td>${escHtml(row.method || 'Unknown')}</td><td>${Number(row.txCount || 0)}</td><td>${escHtml(fmtCurrency(row.amount || 0))}</td></tr>`).join('')
+      : '<tr><td colspan="3" class="text-center text-muted" style="padding:16px">No payment data this month</td></tr>';
+  }
+}
+
+async function renderOwnerProMetrics() {
+  const hasUI = document.getElementById('proCollectionRate');
+  if (!hasUI) return;
+
+  try {
+    const res = await fetch('api/owner-kpi.php', { credentials: 'same-origin' });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.success && data.report) {
+      renderOwnerProMetricsFromReport(data.report);
+      return;
+    }
+  } catch (e) {
+    // Fall back to local report so dashboard remains usable offline.
+  }
+
+  renderOwnerProMetricsFromReport(buildLocalOwnerProReport());
+}
+
+function exportOwnerKpiCsv() {
+  const report = ownerProKpiReport || buildLocalOwnerProReport();
+  if (!report) {
+    notify('No KPI report available for export', 'warning');
+    return;
+  }
+
+  const lines = [
+    'metric,value',
+    `month_start,"${report.monthStart || ''}"`,
+    `month_collected,"${Number(report.monthCollected || 0).toFixed(2)}"`,
+    `month_due_total,"${Number(report.monthDueTotal || 0).toFixed(2)}"`,
+    `collection_rate_pct,"${Number(report.collectionRatePct || 0).toFixed(1)}"`,
+    `pending_total,"${Number(report.pendingTotal || 0).toFixed(2)}"`,
+    `occupancy_pct,"${Number(report.occupancy?.occupancyPct || 0).toFixed(1)}"`,
+    `avg_complaint_sla_hours,"${Number(report.complaints?.avgSlaHours || 0).toFixed(1)}"`,
+    `open_requests,"${Number(report.complaints?.openRequests || 0)}"`,
+  ];
+
+  (report.duesAging || []).forEach((row) => {
+    lines.push(`dues_${String(row.label || 'bucket').replace(/[^a-zA-Z0-9]+/g, '_').toLowerCase()},"${Number(row.amount || 0).toFixed(2)}"`);
+  });
+  (report.paymentMethods || []).forEach((row) => {
+    const key = String(row.method || 'unknown').replace(/[^a-zA-Z0-9]+/g, '_').toLowerCase();
+    lines.push(`method_${key}_tx,"${Number(row.txCount || 0)}"`);
+    lines.push(`method_${key}_amount,"${Number(row.amount || 0).toFixed(2)}"`);
+  });
+
+  const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `owner-kpi-${today()}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  notify('Owner KPI CSV exported', 'success');
+}
+
+async function renderReminderQueue() {
+  const tbody = document.getElementById('reminderQueueBody');
+  if (!tbody) return;
+
+  tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted" style="padding:16px">Loading reminders...</td></tr>';
+
+  try {
+    const res = await fetch('api/reminders.php?limit=80', { credentials: 'same-origin' });
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok || !data.success) {
+      tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted" style="padding:16px">Unable to load reminders</td></tr>';
+      return;
+    }
+
+    const rows = Array.isArray(data.rows) ? data.rows : [];
+    if (!rows.length) {
+      tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted" style="padding:16px">No reminder rows yet</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = rows.map((r) => {
+      const status = String(r.status || 'queued').toLowerCase();
+      const badgeClass = status === 'sent' ? 'badge-success' : status === 'failed' ? 'badge-danger' : 'badge-warning';
+      const actionCell = status === 'sent'
+        ? '<span class="text-muted text-sm">Sent</span>'
+        : `<button class="btn btn-sm btn-secondary" onclick="markReminderSent(${Number(r.id || 0)})">Mark Sent</button>`;
+
+      return `<tr>
+        <td>${escHtml(r.student_name || 'Student')}<div class="text-muted text-sm">${escHtml(r.student_sid || r.student_id || '')}</div></td>
+        <td>${escHtml(fmtCurrency(r.amount_due || 0))}</td>
+        <td>${escHtml(String(r.days_overdue || 0))} days</td>
+        <td><span class="badge badge-info">${escHtml(String(r.channel || '-').toUpperCase())}</span></td>
+        <td><span class="badge ${badgeClass}">${escHtml(status)}</span></td>
+        <td>${escHtml(fmtDateTime(r.created_at || ''))}</td>
+        <td>${actionCell}</td>
+      </tr>`;
+    }).join('');
+  } catch (e) {
+    tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted" style="padding:16px">Unable to load reminders</td></tr>';
+  }
+}
+
+async function generateDueReminders() {
+  const channel = document.getElementById('reminderChannel')?.value || 'whatsapp';
+  const minDays = Number(document.getElementById('reminderMinDays')?.value || 0);
+
+  try {
+    const res = await fetch('api/reminders.php', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': HMS.getCsrfToken() || '',
+      },
+      body: JSON.stringify({ action: 'generate', channel, minDays, templateKey: 'fee_due_v1' }),
+    });
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok || !data.success) {
+      notify(data.error || 'Reminder generation failed', 'error');
+      return;
+    }
+
+    notify(`Reminders generated: ${data.inserted || 0}, skipped: ${data.skipped || 0}`, 'success');
+    renderReminderQueue();
+  } catch (e) {
+    notify('Reminder service unavailable', 'error');
+  }
+}
+
+async function markReminderSent(id) {
+  if (!id) return;
+
+  try {
+    const res = await fetch('api/reminders.php', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': HMS.getCsrfToken() || '',
+      },
+      body: JSON.stringify({ action: 'mark_sent', id }),
+    });
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok || !data.success) {
+      notify(data.error || 'Unable to mark reminder as sent', 'error');
+      return;
+    }
+
+    notify('Reminder marked as sent', 'success');
+    renderReminderQueue();
+  } catch (e) {
+    notify('Reminder service unavailable', 'error');
+  }
 }
 
 function printOwnerMonthlyReport() {
