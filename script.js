@@ -5,6 +5,28 @@
 const DATA_VERSION = 'v2.0';
 // Asset loading uses versioned CSS/JS URLs in HTML files.
 let deferredInstallPrompt = null;
+const APP_QUERY_PARAMS = new URLSearchParams(window.location.search || '');
+const APP_MODE_FROM_QUERY = APP_QUERY_PARAMS.get('app') === 'mobile';
+if (APP_MODE_FROM_QUERY) {
+  localStorage.setItem('hms_app_mode', 'mobile');
+}
+const IS_APP_MOBILE = localStorage.getItem('hms_app_mode') === 'mobile';
+
+function applyAppModeClasses() {
+  if (!IS_APP_MOBILE) return;
+  document.documentElement.classList.add('app-mobile');
+  document.body.classList.add('app-mobile');
+}
+
+function trimAnalyticsForAppMobile() {
+  if (!IS_APP_MOBILE) return;
+  ['revenueChart', 'occupancyChart', 'payStatusChart'].forEach((id) => {
+    const canvas = document.getElementById(id);
+    if (!canvas) return;
+    const card = canvas.closest('.card');
+    if (card) card.style.display = 'none';
+  });
+}
 
 function fmtClockTime(iso) {
   if (!iso) return '--';
@@ -226,9 +248,12 @@ function renderPendingSyncIndicators() {
 
 // Initialize theme on page load
 document.addEventListener('DOMContentLoaded', () => {
+  applyAppModeClasses();
   initTheme();
   initPwa();
-  ensurePwaInstallButton();
+  if (!IS_APP_MOBILE) {
+    ensurePwaInstallButton();
+  }
 });
 
 // ===== DATA STORE =====
@@ -927,6 +952,9 @@ function showPage(pageId) {
   }
   if (pageId === 'notices-admin') {
     renderReminderQueue();
+  }
+  if (pageId === 'analytics') {
+    trimAnalyticsForAppMobile();
   }
   if (window.innerWidth <= 768) closeMobileSidebar();
 }
@@ -2086,7 +2114,11 @@ async function initAdminDashboard() {
   renderReminderQueue();
   await renderOwnerProMetrics();
   loadAdminTwofaStatus(true);
-  setTimeout(initCharts, 100);
+  if (IS_APP_MOBILE) {
+    trimAnalyticsForAppMobile();
+  } else {
+    setTimeout(initCharts, 100);
+  }
 }
 
 function setAdminTwofaUi(state) {
@@ -3530,6 +3562,7 @@ function destroyCharts() {
 }
 
 function initCharts() {
+  if (IS_APP_MOBILE) return;
   if (typeof Chart === 'undefined') return;
   destroyCharts();
   
