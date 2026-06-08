@@ -529,8 +529,16 @@
             <button class="btn btn-secondary" onclick="exportAuditCsv()">Export CSV</button>
             <button class="btn btn-secondary" onclick="clearAuditFilters()">Reset Filters</button>
             <button class="btn btn-primary" onclick="renderAuditLogs(1)">Refresh</button>
+            <select class="filter-select" id="auditRetentionDays" style="min-width:140px" title="Keep recent audit logs only">
+              <option value="30">Keep 30 Days</option>
+              <option value="90" selected>Keep 90 Days</option>
+              <option value="180">Keep 180 Days</option>
+              <option value="365">Keep 365 Days</option>
+            </select>
+            <button class="btn btn-outline" onclick="purgeAuditLogs()" title="Delete audit events older than selected retention period">Apply Retention</button>
           </div>
         </div>
+        <div class="text-muted text-sm" id="auditRetentionInfo" style="margin:-8px 0 12px 2px">Retention policy: keep last 90 days of audit events.</div>
         <div class="stats-grid" style="margin-bottom:16px">
           <div class="stat-card">
             <div class="stat-icon red"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg></div>
@@ -566,6 +574,7 @@
                 <option value="data_remove">data_remove</option>
                 <option value="password_change">password_change</option>
                 <option value="payment_submit">payment_submit</option>
+                <option value="audit_retention_purge">audit_retention_purge</option>
               </select>
               <select class="filter-select" id="auditStatusFilter" onchange="applyAuditFilters()">
                 <option value="">All Status</option>
