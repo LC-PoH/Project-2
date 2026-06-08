@@ -963,6 +963,8 @@ function closeCustomFilterSelects(except) {
   document.querySelectorAll('.custom-select.open').forEach((el) => {
     if (except && el === except) return;
     el.classList.remove('open');
+    const menu = el.querySelector('.custom-select-menu');
+    if (menu) menu.style.maxHeight = '';
     const trigger = el.querySelector('.custom-select-trigger');
     if (trigger) trigger.setAttribute('aria-expanded', 'false');
   });
@@ -998,6 +1000,26 @@ function buildCustomFilterSelect(select) {
 
   wrapper.appendChild(trigger);
   wrapper.appendChild(menu);
+
+  const positionMenu = () => {
+    wrapper.classList.remove('open-up');
+    const rect = wrapper.getBoundingClientRect();
+    const optionCount = select.options.length;
+    const estimatedMenuHeight = Math.min(240, (optionCount * 40) + 12);
+    const viewportPadding = 10;
+    const spaceBelow = Math.max(0, window.innerHeight - rect.bottom - viewportPadding);
+    const spaceAbove = Math.max(0, rect.top - viewportPadding);
+    const forceDown = select.id === 'reminderChannel' || select.id === 'reminderMinDays';
+
+    const openUp = !forceDown && spaceBelow < estimatedMenuHeight && spaceAbove > spaceBelow;
+    if (openUp) {
+      wrapper.classList.add('open-up');
+    }
+
+    const availableSpace = openUp ? spaceAbove : spaceBelow;
+    const safeMaxHeight = Math.max(120, Math.min(240, availableSpace));
+    menu.style.maxHeight = `${safeMaxHeight}px`;
+  };
 
   const syncFromNative = () => {
     const selected = select.options[select.selectedIndex];
@@ -1045,6 +1067,7 @@ function buildCustomFilterSelect(select) {
     closeCustomFilterSelects(wrapper);
     wrapper.classList.toggle('open', willOpen);
     trigger.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+    if (willOpen) positionMenu();
   });
 
   trigger.addEventListener('keydown', (e) => {
@@ -1054,11 +1077,19 @@ function buildCustomFilterSelect(select) {
         closeCustomFilterSelects(wrapper);
         wrapper.classList.add('open');
         trigger.setAttribute('aria-expanded', 'true');
+        positionMenu();
       }
       const active = menu.querySelector('.custom-select-option.active') || menu.querySelector('.custom-select-option:not(.disabled)');
       if (active) active.focus();
     }
   });
+
+  const repositionIfOpen = () => {
+    if (wrapper.classList.contains('open')) positionMenu();
+  };
+
+  window.addEventListener('resize', repositionIfOpen, { passive: true });
+  window.addEventListener('scroll', repositionIfOpen, { passive: true });
 
   menu.addEventListener('keydown', (e) => {
     const options = Array.from(menu.querySelectorAll('.custom-select-option:not(.disabled)'));
