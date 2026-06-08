@@ -973,7 +973,7 @@ function buildCustomFilterSelect(select) {
   select.dataset.customSelectInit = '1';
 
   const wrapper = document.createElement('div');
-  wrapper.className = 'custom-select';
+  wrapper.className = `custom-select ${select.classList.contains('filter-select') ? 'custom-select-filter' : 'custom-select-input'}`;
 
   const parent = select.parentNode;
   if (!parent) return;
@@ -1090,7 +1090,7 @@ function buildCustomFilterSelect(select) {
 
 function initCustomFilterSelects(root = document) {
   const host = root && root.querySelectorAll ? root : document;
-  host.querySelectorAll('select.filter-select').forEach((sel) => buildCustomFilterSelect(sel));
+  host.querySelectorAll('select.filter-select, select.input').forEach((sel) => buildCustomFilterSelect(sel));
 }
 
 document.addEventListener('click', (e) => {
@@ -1849,6 +1849,7 @@ function auditActionLabel(action) {
     twofa_recovery_regenerate: '2FA Recovery Regenerated',
     login_2fa: '2FA Login',
     login_2fa_recovery: '2FA Recovery Login',
+    audit_retention_purge: 'Audit Retention Purge',
   };
   return map[action] || String(action || '-').replace(/_/g, ' ');
 }
@@ -1918,6 +1919,56 @@ function exportAuditCsv() {
   a.click();
   URL.revokeObjectURL(url);
   notify('Audit CSV exported', 'success');
+}
+
+async function purgeAuditLogs() {
+  const keepDays = Number(document.getElementById('auditRetentionDays')?.value || 90);
+  if (!Number.isFinite(keepDays) || keepDays < 7 || keepDays > 3650) {
+    notify('Retention days must be between 7 and 3650', 'warning');
+    return;
+  }
+
+  const confirmed = window.confirm(`Delete audit events older than ${keepDays} days? This action cannot be undone.`);
+  if (!confirmed) return;
+
+  if (!HMS.getCsrfToken()) {
+    await HMS.refreshSessionState();
+  }
+
+  const send = async () => fetch('api/audit-retention.php', {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRF-Token': HMS.getCsrfToken() || '',
+    },
+    body: JSON.stringify({ keepDays }),
+  });
+
+  let res = await send();
+  let data = await res.json().catch(() => ({}));
+
+  if (!res.ok && res.status === 403 && String(data.error || '').toLowerCase().includes('csrf')) {
+    const refreshed = await HMS.refreshSessionState();
+    if (refreshed) {
+      res = await send();
+      data = await res.json().catch(() => ({}));
+    }
+  }
+
+  if (!res.ok || !data.success) {
+    notify(data.error || 'Unable to apply audit retention policy', 'error');
+    return;
+  }
+
+  const purged = Number(data.purged || 0);
+  const info = document.getElementById('auditRetentionInfo');
+  if (info) {
+    info.textContent = `Retention policy: keep last ${keepDays} days of audit events. Last purge removed ${purged} row${purged === 1 ? '' : 's'}.`;
+  }
+
+  notify(`Audit retention applied. Removed ${purged} old event${purged === 1 ? '' : 's'}.`, 'success');
+  await renderAuditLogs(1);
 }
 
 async function renderAuditSummary() {
